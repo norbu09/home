@@ -3,6 +3,8 @@ config :home, token_signing_secret: "PvNE9JQSMwQUay5DVA1PuavDML8UudiT"
 config :bcrypt_elixir, log_rounds: 1
 config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
 
+config :home, :llm_model_route_refresher, enabled: false
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used

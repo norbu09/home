@@ -20,7 +20,21 @@ if System.get_env("PHX_SERVER") do
   config :home, HomeWeb.Endpoint, server: true
 end
 
-config :home, HomeWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+config :home, HomeWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4070"))]
+
+if config_env() == :prod do
+  cloak_key =
+    System.get_env("CLOAK_KEY") ||
+      raise """
+      environment variable CLOAK_KEY is missing.
+      Generate a 32-byte key with: openssl rand -base64 32
+      """
+
+  config :home, Home.Vault,
+    ciphers: [
+      default: {Cloak.Ciphers.AES.GCM, tag: "AES.GCM.V1", key: Base.decode64!(cloak_key)}
+    ]
+end
 
 if config_env() == :dev do
   # Reload browser tabs when matching files change.

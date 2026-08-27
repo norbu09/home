@@ -454,6 +454,23 @@ defmodule HomeWeb.CoreComponents do
 
   ## JS Commands
 
+  attr :id, :string, required: true
+  attr :label, :string, required: true
+  attr :value, :any, required: true
+  attr :detail, :string, required: true
+  attr :icon, :string, required: true
+  attr :tone, :string, required: true
+
+  def metric(assigns) do
+    ~H"""
+    <article id={@id} class="cyber-panel router-metric">
+      <header><span>{@label}</span><.icon name={@icon} class="size-4" /></header>
+      <strong class={"is-#{@tone}"}>{@value}</strong>
+      <small class={@tone == "green" && "is-positive"}>{@detail}</small>
+    </article>
+    """
+  end
+
   def show(js \\ %JS{}, selector) do
     JS.show(js,
       to: selector,

@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Home Router - Dashboard Directions</title>
+    <meta name="tidewave:canvas:version" content="1" />
+    <script src="https://tidewave.ai/tc/canvas.js"></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      design-card { width: 1120px; height: 720px; padding: 0; overflow: hidden; border-radius: 8px; }
+      .app { width: 100%; height: 100%; display: flex; font-family: Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: 0; }
+      .app button, .app select { font: inherit; letter-spacing: 0; }
+      .icon { width: 16px; height: 16px; flex: none; stroke-width: 1.8; }
+      .icon-sm { width: 14px; height: 14px; }
+      .icon-btn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 6px; cursor: pointer; }
+      .avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+      .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+      .row-actions { display: flex; align-items: center; gap: 6px; }
+      .switch { width: 32px; height: 18px; border: 0; padding: 2px; border-radius: 10px; cursor: pointer; transition: background .15s; }
+      .switch::after { content: ""; display: block; width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 1px 2px #0003; transition: transform .15s; }
+      .switch.on::after { transform: translateX(14px); }
+      .bar { height: 6px; border-radius: 3px; overflow: hidden; }
+      .bar > span { display: block; height: 100%; border-radius: inherit; }
+      .spark { display: flex; align-items: end; gap: 2px; height: 24px; }
+      .spark span { width: 4px; min-height: 3px; border-radius: 1px 1px 0 0; }
+
+      /* Cyberdeck round */
+      .cyber { --bg:#07100d; --panel:#0b1713; --panel2:#0e1d18; --line:#1c493f; --line2:#17352e; --cyan:#4ee8c2; --green:#64e696; --amber:#e8c35e; --magenta:#e45ba8; --red:#f16965; --muted:#5e897b; --text:#afd1c6; color:var(--text); background-color:var(--bg); background-image:linear-gradient(#17372f22 1px,transparent 1px),linear-gradient(90deg,#17372f22 1px,transparent 1px); background-size:24px 24px; font-family:"JetBrains Mono","Fira Code","Cascadia Code",monospace; position:relative; letter-spacing:0; }
+      .cyber::after { content:""; pointer-events:none; position:absolute; inset:0; z-index:20; background:repeating-linear-gradient(0deg,transparent,transparent 3px,#0002 3px,#0002 4px); }
+      .cyber button,.cyber select { font-family:inherit; }
+      .cy-panel { position:relative; border:1px solid #2a6455aa; background:#091510f2; }
+      .cy-panel::before,.cy-panel::after { content:""; position:absolute; width:11px; height:11px; border-color:#58e8c4aa; border-style:solid; z-index:2; pointer-events:none; }
+      .cy-panel::before { top:-1px;left:-1px;border-width:2px 0 0 2px; }
+      .cy-panel::after { right:-1px;bottom:-1px;border-width:0 2px 2px 0; }
+      .cy-kicker { color:var(--amber); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.14em; }
+      .cy-title { color:#d7eee7; font-size:18px; text-transform:uppercase; font-weight:750; letter-spacing:.08em; text-shadow:0 0 10px #4ee8c255; }
+      .cy-muted { color:var(--muted); }
+      .cy-dot { width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 7px #64e696aa;display:inline-block; }
+      .cy-dot.warn { background:var(--amber);box-shadow:0 0 7px #e8c35e99; }
+      .cy-dot.off { background:#49665e;box-shadow:none; }
+      .cyber .switch { border-radius:1px;background:#173128;border:1px solid #356153;padding:2px;width:34px;height:18px; }
+      .cyber .switch::after { border-radius:0;background:#587a6f;box-shadow:none;width:12px;height:12px;margin-top:0; }
+      .cyber .switch.on { background:#123b30;border-color:#4ee8c2;box-shadow:0 0 7px #4ee8c233; }
+      .cyber .switch.on::after { background:var(--cyan);box-shadow:0 0 6px #4ee8c299;transform:translateX(16px); }
+      .cyber .bar { border-radius:0;background:#142c25;border:1px solid #224a40;height:7px; }
+      .cyber .bar > span { border-radius:0;background:var(--cyan);box-shadow:0 0 7px #4ee8c255; }
+      .cyber .bar.warn > span { background:var(--amber);box-shadow:0 0 7px #e8c35e55; }
+      .cy-tag { display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 7px;border:1px solid #2d6254;color:#75af9e;background:#0d211a;font-size:8px;text-transform:uppercase;letter-spacing:.08em; }
+      .cy-tag.amber { border-color:#79672f;color:var(--amber);background:#221e0f; }
+      .cy-icon-btn { width:31px;height:31px;display:grid;place-items:center;border:1px solid #245044;background:#0a1813;color:#69ae9a;cursor:pointer; }
+      .cy-icon-btn:hover { color:var(--cyan);border-color:var(--cyan);box-shadow:0 0 8px #4ee8c233; }
+
+      .hud .sidebar { width:222px;background:#050b09;border-right:1px solid #183b33;display:flex;flex-direction:column; }
+      .hud .brand { height:68px;padding:13px 15px;border-bottom:1px solid #183b33;display:flex;align-items:center;gap:11px; }
+      .hud .brand-mark { width:31px;height:31px;border:1px solid var(--cyan);display:grid;place-items:center;color:var(--cyan);box-shadow:0 0 9px #4ee8c233,inset 0 0 9px #4ee8c211;font-weight:900; }
+      .hud .brand strong { color:var(--cyan);font-size:13px;letter-spacing:.16em;text-shadow:0 0 9px #4ee8c277; }
+      .hud .brand small { display:block;color:#3d7063;font-size:7px;letter-spacing:.18em;text-transform:uppercase;margin-top:4px; }
+      .hud .sysline { height:35px;padding:0 14px;border-bottom:1px solid #132c26;display:flex;align-items:center;justify-content:space-between;font-size:7px;text-transform:uppercase;color:#4f8375;letter-spacing:.08em; }
+      .hud .nav { padding:9px; }
+      .hud .nav-label { display:flex;align-items:center;gap:7px;color:var(--amber);font-size:8px;text-transform:uppercase;letter-spacing:.13em;margin:14px 7px 7px; }
+      .hud .nav-label::before,.hud .nav-label::after { content:"";height:1px;background:#6d5c2d66; }
+      .hud .nav-label::before { width:8px; }.hud .nav-label::after { flex:1; }
+      .hud .nav-item { height:34px;padding:0 10px;display:flex;align-items:center;gap:9px;color:#679487;font-size:10px;text-transform:uppercase;border:1px solid transparent;margin-bottom:2px; }
+      .hud .nav-item.active { color:var(--cyan);background:#10251e;border-color:#2d6556;text-shadow:0 0 8px #4ee8c255;box-shadow:0 0 8px #4ee8c211; }
+      .hud .nav-item .right { margin-left:auto;color:#315c50;font-size:8px; }
+      .hud .sidebar-foot { margin-top:auto;border-top:1px solid #183b33;padding:12px 14px;font-size:8px;color:#426d61; }
+      .hud .sidebar-foot div { display:flex;justify-content:space-between;margin-top:8px; }
+      .hud .viewport { flex:1;min-width:0;padding:18px 19px; }
+      .hud .page-head { height:49px;display:flex;align-items:flex-start;justify-content:space-between; }
+      .hud .page-head p { margin:5px 0 0;font-size:8px;color:#517c70;text-transform:uppercase;letter-spacing:.08em; }
+      .hud .head-actions { display:flex;gap:7px;align-items:center; }
+      .hud .metrics { display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:10px; }
+      .hud .metric { height:84px;padding:12px 13px; }
+      .hud .metric-label { display:flex;justify-content:space-between;color:var(--amber);font-size:8px;text-transform:uppercase;letter-spacing:.1em; }
+      .hud .metric-value { color:#d0e8e0;font-size:20px;font-weight:700;margin-top:8px;text-shadow:0 0 8px #4ee8c233; }
+      .hud .metric-foot { margin-top:5px;color:#4d786c;font-size:7px;text-transform:uppercase; }
+      .hud .workspace { display:grid;grid-template-columns:1fr 260px;gap:10px;height:489px; }
+      .hud .projects { min-width:0; }
+      .hud .panel-head { height:46px;padding:0 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1b4037; }
+      .hud .panel-head h2 { margin:0;color:#b9d8ce;font-size:10px;text-transform:uppercase;letter-spacing:.1em; }
+      .hud .panel-head small { display:block;color:#426d61;font-size:7px;margin-top:4px; }
+      .hud .columns,.hud .project-row { display:grid;grid-template-columns:1.45fr .8fr 1.15fr .85fr 56px;align-items:center;padding:0 12px; }
+      .hud .columns { height:30px;color:var(--amber);font-size:7px;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #17352e; }
+      .hud .project-row { height:75px;border-bottom:1px solid #142f28;font-size:9px; }
+      .hud .project-row:last-child { border-bottom:0; }
+      .hud .project-name { color:#c0dcd3;font-size:10px;font-weight:700;display:flex;align-items:center;gap:8px; }
+      .hud .project-meta { color:#446f63;font-size:7px;margin:5px 0 0 14px; }
+      .hud .money { color:#97c4b6;font-variant-numeric:tabular-nums; }
+      .hud .budget { padding-right:13px; }.hud .budget-top { display:flex;justify-content:space-between;margin-bottom:6px;color:#79a99b;font-size:8px; }
+      .hud .route { color:#80ad9f;font-size:8px;text-transform:uppercase; }.hud .route b { color:var(--magenta);font-weight:600;display:block;margin-bottom:4px; }.hud .route .auto { color:var(--cyan); }
+      .hud .side-stack { display:flex;flex-direction:column;gap:10px; }
+      .hud .side-panel { padding:13px; }
+      .hud .quota-alert { border-color:#76642e;background:#1a180c; }
+      .hud .quota-alert::before,.hud .quota-alert::after { border-color:#d3af4e; }
+      .hud .alert-title { color:var(--amber);font-size:9px;text-transform:uppercase;display:flex;align-items:center;gap:7px; }
+      .hud .quota-alert p { color:#8e7a43;font-size:8px;line-height:1.55;margin:9px 0 0; }
+      .hud .providers { flex:1; }
+      .hud .provider-row { padding:12px 0;border-bottom:1px solid #18352e;display:grid;grid-template-columns:1fr auto;font-size:8px; }
+      .hud .provider-row:last-child { border:0; }.hud .provider-name { color:#9fc5ba;display:flex;align-items:center;gap:7px; }.hud .provider-meta { color:#446f63;margin-top:5px; }.hud .provider-cost { color:var(--cyan);text-align:right; }.hud .provider-cost small { display:block;color:#446f63;margin-top:5px; }
+      .hud .ticker { height:28px;border-top:1px solid #1b4037;padding:8px 12px 0;color:#315e52;font-size:7px;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;overflow:hidden; }
+
+      .forge .sidebar { width:190px;background:#08110e;border-right:1px solid #1c4339;padding:16px 11px;display:flex;flex-direction:column; }
+      .forge .forge-brand { display:flex;align-items:center;gap:10px;padding:0 7px 20px; }
+      .forge .logo { width:31px;height:31px;background:#4ee8c2;color:#07100d;display:grid;place-items:center;font-weight:900;clip-path:polygon(0 0,80% 0,100% 20%,100% 100%,20% 100%,0 80%); }
+      .forge .forge-brand strong { color:#d6eee6;font-size:13px; }.forge .forge-brand strong span { color:var(--cyan); }.forge .forge-brand small { display:block;color:#477568;text-transform:uppercase;font-size:7px;letter-spacing:.14em;margin-top:3px; }
+      .forge .forge-nav-item { height:36px;display:flex;align-items:center;gap:9px;padding:0 10px;color:#5f8a7e;font-size:9px;text-transform:uppercase;border-left:2px solid transparent;margin-bottom:3px; }
+      .forge .forge-nav-item.active { color:var(--cyan);background:#0e241d;border-left-color:var(--cyan);text-shadow:0 0 7px #4ee8c244; }
+      .forge .forge-side-space { flex:1; }.forge .online-box { border-top:1px solid #18382f;padding:13px 8px 0;color:#628e82;font-size:8px;line-height:1.7; }.forge .online-box strong { color:var(--green);display:block;text-transform:uppercase; }
+      .forge .main { flex:1;padding:19px 21px;min-width:0; }
+      .forge .page-header { height:63px;display:flex;justify-content:space-between;align-items:flex-start; }.forge .page-header h1 { margin:4px 0 0;color:#d3ebe3;font-size:20px;text-transform:uppercase;letter-spacing:.05em; }.forge .page-header p { margin:5px 0 0;color:#4d786c;font-size:8px; }.forge .date { height:29px;padding:0 9px;border:1px solid #285447;display:flex;align-items:center;gap:7px;color:#6e9d90;font-size:8px;text-transform:uppercase; }
+      .forge .metric-strip { display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #245045;background:#0a1713;margin-bottom:12px; }.forge .fmetric { height:81px;padding:13px;border-right:1px solid #1c4036;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start; }.forge .fmetric:last-child { border:0; }.forge .metric-icon { width:27px;height:27px;border:1px solid #316d5b;display:grid;place-items:center;color:var(--cyan); }.forge .fmetric small { display:block;color:#557e72;font-size:7px;text-transform:uppercase; }.forge .fmetric strong { display:block;color:#cbe3dc;font-size:17px;margin-top:4px; }.forge .fmetric span { color:#3f6b5f;font-size:7px; }
+      .forge .main-grid { display:grid;grid-template-columns:1fr 285px;gap:12px;height:502px; }.forge .fpanel { border:1px solid #214b40;background:#091510;position:relative; }.forge .fpanel-head { height:48px;padding:0 13px;border-bottom:1px solid #1c4037;display:flex;align-items:center;justify-content:space-between; }.forge .fpanel-head h2 { margin:0;color:#b8d5cc;font-size:10px;text-transform:uppercase; }.forge .fpanel-head p { margin:4px 0 0;color:#3f6b5f;font-size:7px; }.forge .fpanel-head span { color:var(--amber);font-size:8px; }
+      .forge .usage-row { height:66px;padding:0 13px;border-bottom:1px solid #15332b;display:grid;grid-template-columns:1.4fr .95fr .8fr 62px;align-items:center;font-size:8px; }.forge .usage-row:last-child { border:0; }.forge .usage-row strong { color:#b8d5cc;font-size:9px; }.forge .usage-row small { display:block;color:#416c60;margin-top:5px; }.forge .share { width:105px;height:5px;background:#132d26;display:block; }.forge .share i { height:100%;background:var(--cyan);display:block;box-shadow:0 0 6px #4ee8c255; }.forge .cost { color:var(--green);font-size:9px; }
+      .forge .routing-panel { padding-bottom:12px; }.forge .selected { padding:13px;border-bottom:1px solid #1b3d34;display:flex;justify-content:space-between;align-items:center; }.forge .selected strong { color:#c2dcd4;font-size:10px; }.forge .selected small { display:block;color:#426e62;font-size:7px;margin-top:5px; }.forge .control { padding:12px 13px 0; }.forge .control label { display:block;color:var(--amber);font-size:7px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px; }.forge .control select { width:100%;height:31px;border:1px solid #295a4c;background:#07110d;color:#80ad9f;padding:0 8px;font-size:8px;border-radius:0; }.forge .control-note { margin:12px 13px 0;border-left:2px solid var(--magenta);padding:8px;background:#20101a;color:#8f5b77;font-size:7px;line-height:1.5; }.forge .apply { margin:12px 13px 0;width:calc(100% - 26px);height:30px;border:1px solid var(--cyan);background:#12342b;color:var(--cyan);font-size:8px;text-transform:uppercase;letter-spacing:.09em;box-shadow:0 0 8px #4ee8c222; }
+
+      /* Option A */
+      .ops { color: #20211f; background: #f5f6f3; }
+      .ops .rail { width: 58px; background: #171916; color: #aeb3aa; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 10px; }
+      .ops .brand { width: 32px; height: 32px; display: grid; place-items: center; background: #d4ff57; color: #171916; border-radius: 7px; font-weight: 900; font-size: 15px; margin-bottom: 16px; }
+      .ops .rail-btn { width: 34px; height: 34px; border: 0; background: transparent; color: inherit; display: grid; place-items: center; border-radius: 6px; }
+      .ops .rail-btn.active { color: #fff; background: #353831; }
+      .ops .rail-spacer { flex: 1; }
+      .ops .main { flex: 1; min-width: 0; }
+      .ops .top { height: 64px; padding: 0 24px; border-bottom: 1px solid #dfe1dc; background: #fff; display: flex; align-items: center; justify-content: space-between; }
+      .ops .title { display: flex; align-items: baseline; gap: 10px; }
+      .ops h1 { margin: 0; font-size: 18px; font-weight: 720; }
+      .ops .env { color: #767b73; font-size: 12px; }
+      .ops .top-actions { display: flex; align-items: center; gap: 8px; }
+      .ops .icon-btn { border: 1px solid #d8dad5; color: #555a52; background: #fff; }
+      .ops .content { height: calc(100% - 64px); padding: 20px 24px; overflow: hidden; }
+      .ops .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr 1.25fr; border: 1px solid #dfe1dc; background: #fff; border-radius: 7px; }
+      .ops .metric { min-width: 0; padding: 15px 17px; border-right: 1px solid #e4e6e1; }
+      .ops .metric:last-child { border: 0; }
+      .ops .metric-label { color: #747970; font-size: 11px; font-weight: 650; text-transform: uppercase; }
+      .ops .metric-value { margin-top: 6px; font-size: 21px; font-weight: 720; }
+      .ops .metric-foot { margin-top: 4px; color: #777c74; font-size: 11px; }
+      .ops .good { color: #248053; }
+      .ops .providers { display: flex; gap: 14px; margin-top: 8px; }
+      .ops .provider { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555a52; }
+      .ops .toolbar { height: 58px; display: flex; align-items: center; justify-content: space-between; }
+      .ops .tabs { display: flex; align-self: stretch; gap: 22px; }
+      .ops .tab { border: 0; background: none; padding: 2px 0 0; color: #787d75; font-size: 13px; border-bottom: 2px solid transparent; }
+      .ops .tab.active { color: #20211f; font-weight: 650; border-color: #20211f; }
+      .ops .search { width: 222px; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #d8dad5; border-radius: 6px; background: #fff; color: #858a82; font-size: 12px; }
+      .ops .table { border: 1px solid #dfe1dc; border-radius: 7px; background: white; overflow: hidden; }
+      .ops .tr { display: grid; grid-template-columns: 2.1fr 1.05fr 1.55fr 1fr .9fr 82px; min-height: 67px; align-items: center; border-bottom: 1px solid #e7e9e4; padding: 0 16px; }
+      .ops .tr:last-child { border: 0; }
+      .ops .th { min-height: 36px; background: #fafbf8; color: #777c74; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+      .ops .project { display: flex; align-items: center; gap: 10px; }
+      .ops .project-mark { width: 29px; height: 29px; border: 1px solid #dfe1dc; background: #f5f6f3; display: grid; place-items: center; border-radius: 6px; font-size: 11px; font-weight: 750; }
+      .ops .project-name { font-size: 13px; font-weight: 650; }
+      .ops .project-sub { color: #848980; font-size: 10px; margin-top: 3px; }
+      .ops .number { font-size: 12px; font-variant-numeric: tabular-nums; }
+      .ops .quota { width: 112px; }
+      .ops .quota-top { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 7px; }
+      .ops .bar { background: #e8eae5; }
+      .ops .bar > span { background: #78a127; }
+      .ops .bar.warn > span { background: #df8c27; }
+      .ops .route { display: inline-flex; align-items: center; gap: 6px; color: #3d423b; font-size: 11px; }
+      .ops .route.auto { color: #767b73; }
+      .ops .status { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+      .ops .switch { background: #c7cbc3; }
+      .ops .switch.on { background: #4c7d44; }
+
+      /* Option B */
+      .focus { color: #22262b; background: #edf0f1; }
+      .focus .side { width: 246px; background: #fff; border-right: 1px solid #d6dade; display: flex; flex-direction: column; }
+      .focus .side-head { height: 64px; display: flex; align-items: center; padding: 0 18px; gap: 10px; border-bottom: 1px solid #e1e4e7; }
+      .focus .brand { width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center; color: #fff; background: #c74431; font-size: 12px; font-weight: 800; }
+      .focus .brand-name { font-size: 14px; font-weight: 750; }
+      .focus .side-label { margin: 19px 16px 8px; color: #858b91; font-size: 10px; text-transform: uppercase; font-weight: 700; }
+      .focus .side-link { margin: 1px 9px; height: 36px; padding: 0 10px; display: flex; align-items: center; gap: 9px; color: #626970; border-radius: 6px; font-size: 12px; }
+      .focus .side-link.active { background: #f0f2f3; color: #1e2226; font-weight: 650; }
+      .focus .side-link .count { margin-left: auto; color: #999fa5; }
+      .focus .side-spacer { flex: 1; }
+      .focus .health { margin: 12px; padding: 12px; border-top: 1px solid #e1e4e7; color: #6c7379; font-size: 11px; }
+      .focus .health-line { display: flex; justify-content: space-between; margin-top: 9px; }
+      .focus .work { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .focus .top { height: 64px; padding: 0 22px; background: #fff; border-bottom: 1px solid #d6dade; display: flex; align-items: center; justify-content: space-between; }
+      .focus h1 { margin: 0; font-size: 17px; font-weight: 720; }
+      .focus .crumb { color: #8a9096; font-weight: 500; }
+      .focus .top-actions { display: flex; gap: 8px; align-items: center; }
+      .focus .period { height: 32px; border: 1px solid #d7dbe0; border-radius: 6px; background: #fff; padding: 0 10px; color: #555c63; font-size: 11px; }
+      .focus .primary { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: #252a2f; color: #fff; font-size: 11px; display: flex; align-items: center; gap: 7px; }
+      .focus .body { padding: 18px 20px; display: grid; grid-template-columns: 1fr 310px; gap: 16px; min-height: 0; flex: 1; }
+      .focus .left { min-width: 0; }
+      .focus .project-strip { display: flex; gap: 7px; margin-bottom: 14px; }
+      .focus .project-chip { height: 34px; padding: 0 12px; border: 1px solid #d5d9dc; border-radius: 6px; background: #fff; color: #686f75; font-size: 11px; }
+      .focus .project-chip.active { color: #fff; border-color: #c74431; background: #c74431; }
+      .focus .usage { height: 241px; border: 1px solid #d6dade; border-radius: 7px; background: #fff; padding: 16px; }
+      .focus .panel-head { display: flex; justify-content: space-between; align-items: flex-start; }
+      .focus h2 { margin: 0; font-size: 13px; font-weight: 700; }
+      .focus .muted { color: #858b91; font-size: 10px; margin-top: 4px; }
+      .focus .usage-total { font-size: 22px; font-weight: 740; text-align: right; }
+      .focus .chart { height: 132px; margin-top: 14px; display: flex; align-items: end; gap: 8px; border-bottom: 1px solid #e1e4e6; background: repeating-linear-gradient(to top, transparent 0, transparent 43px, #eef0f2 44px); }
+      .focus .chart span { flex: 1; background: #c74431; opacity: .86; border-radius: 2px 2px 0 0; min-height: 5px; }
+      .focus .chart span:nth-child(3n) { background: #2c8a83; }
+      .focus .chart-labels { display: flex; justify-content: space-between; margin-top: 7px; color: #92989d; font-size: 9px; }
+      .focus .models { margin-top: 14px; border: 1px solid #d6dade; border-radius: 7px; background: #fff; overflow: hidden; }
+      .focus .model-row { min-height: 49px; display: grid; grid-template-columns: 1.6fr 1fr 1fr 45px; align-items: center; padding: 0 14px; border-bottom: 1px solid #e5e7e9; font-size: 11px; }
+      .focus .model-row:last-child { border: 0; }
+      .focus .model-name { display: flex; align-items: center; gap: 7px; font-weight: 650; }
+      .focus .right { display: flex; flex-direction: column; gap: 14px; }
+      .focus .panel { border: 1px solid #d6dade; border-radius: 7px; background: #fff; padding: 15px; }
+      .focus .state-head { display: flex; align-items: center; justify-content: space-between; }
+      .focus .switch { background: #c9cdd1; }
+      .focus .switch.on { background: #23816e; }
+      .focus .field-label { display: block; margin: 16px 0 7px; color: #777e84; font-size: 10px; font-weight: 650; }
+      .focus .select { width: 100%; height: 36px; border: 1px solid #d5d9dc; border-radius: 6px; color: #343a40; background: #fff; padding: 0 10px; font-size: 11px; }
+      .focus .callout { margin-top: 11px; padding: 10px; border-left: 3px solid #d7a229; background: #fbf6e9; color: #6f5a27; font-size: 10px; line-height: 1.5; }
+      .focus .save { width: 100%; height: 34px; margin-top: 14px; border: 0; border-radius: 6px; background: #252a2f; color: white; font-size: 11px; }
+      .focus .quota-ring { width: 90px; height: 90px; border-radius: 50%; margin: 16px auto 10px; display: grid; place-items: center; background: conic-gradient(#c74431 0 72%, #e9ecee 72%); position: relative; }
+      .focus .quota-ring::after { content: ""; width: 68px; height: 68px; background: white; border-radius: 50%; position: absolute; }
+      .focus .quota-value { position: relative; z-index: 1; text-align: center; font-size: 17px; font-weight: 750; }
+      .focus .quota-value small { display: block; color: #858b91; font-size: 8px; font-weight: 600; }
+      .focus .quota-meta { display: flex; justify-content: space-between; color: #70777d; font-size: 10px; }
+
+      /* Option C */
+      .quota-app { color: #252420; background: #f7f4ed; display: block; padding: 20px; }
+      .quota-app .header { height: 48px; display: flex; align-items: flex-start; justify-content: space-between; }
+      .quota-app .identity { display: flex; align-items: center; gap: 10px; }
+      .quota-app .wordmark { font-size: 20px; font-weight: 800; }
+      .quota-app .slash { color: #a7a297; font-weight: 400; }
+      .quota-app .product { font-size: 12px; color: #78746c; }
+      .quota-app .header-actions { display: flex; gap: 7px; }
+      .quota-app .icon-btn { border: 1px solid #d9d3c7; background: #fffdfa; color: #5c5952; }
+      .quota-app .summary { display: grid; grid-template-columns: 1.25fr .85fr .85fr .85fr; gap: 10px; }
+      .quota-app .headline { background: #263b36; color: #f8f5ee; min-height: 121px; border-radius: 7px; padding: 17px 18px; }
+      .quota-app .headline-label { color: #b9c8c3; font-size: 10px; text-transform: uppercase; font-weight: 700; }
+      .quota-app .headline-value { margin-top: 7px; font-size: 28px; font-weight: 760; }
+      .quota-app .headline-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 13px; color: #c9d3cf; font-size: 10px; }
+      .quota-app .summary-card { min-height: 121px; border: 1px solid #ddd6ca; border-radius: 7px; padding: 15px; background: #fffdfa; }
+      .quota-app .summary-label { color: #817c73; font-size: 10px; text-transform: uppercase; font-weight: 700; }
+      .quota-app .summary-value { margin-top: 11px; font-size: 22px; font-weight: 750; }
+      .quota-app .summary-sub { color: #8d887f; font-size: 9px; margin-top: 7px; }
+      .quota-app .grid { display: grid; grid-template-columns: 1fr 300px; gap: 12px; margin-top: 12px; height: 499px; }
+      .quota-app .board { border: 1px solid #ddd6ca; border-radius: 7px; background: #fffdfa; overflow: hidden; }
+      .quota-app .board-head { height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #e5dfd4; }
+      .quota-app h2 { margin: 0; font-size: 13px; font-weight: 720; }
+      .quota-app .seg { display: flex; padding: 3px; background: #eee9df; border-radius: 6px; }
+      .quota-app .seg button { height: 26px; border: 0; padding: 0 10px; border-radius: 4px; background: transparent; color: #7b776f; font-size: 10px; }
+      .quota-app .seg button.active { background: #fffdfa; color: #292823; box-shadow: 0 1px 2px #0002; }
+      .quota-app .project-row { height: 85px; padding: 14px 15px; border-bottom: 1px solid #e7e1d7; display: grid; grid-template-columns: 1.35fr 1.2fr .8fr 66px; align-items: center; }
+      .quota-app .project-row:last-child { border: 0; }
+      .quota-app .project-id { display: flex; align-items: center; gap: 10px; }
+      .quota-app .project-icon { width: 32px; height: 32px; border-radius: 7px; display: grid; place-items: center; background: #ece6da; color: #45423c; font-size: 11px; font-weight: 800; }
+      .quota-app .project-name { font-size: 12px; font-weight: 700; }
+      .quota-app .project-key { color: #99938a; font-size: 9px; margin-top: 4px; }
+      .quota-app .budget { padding-right: 18px; }
+      .quota-app .budget-line { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 7px; }
+      .quota-app .bar { background: #ece7de; height: 7px; }
+      .quota-app .bar > span { background: #308171; }
+      .quota-app .bar.warn > span { background: #cc6f42; }
+      .quota-app .policy { font-size: 10px; }
+      .quota-app .policy strong { display: block; font-size: 11px; margin-bottom: 4px; }
+      .quota-app .policy span { color: #8a857c; }
+      .quota-app .toggle-cell { display: flex; align-items: center; justify-content: flex-end; }
+      .quota-app .switch { background: #c9c4ba; }
+      .quota-app .switch.on { background: #308171; }
+      .quota-app .insights { display: flex; flex-direction: column; gap: 12px; }
+      .quota-app .insight { border: 1px solid #ddd6ca; border-radius: 7px; background: #fffdfa; padding: 15px; }
+      .quota-app .providers { flex: 1; }
+      .quota-app .provider-row { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 12px 0; border-bottom: 1px solid #e8e2d8; }
+      .quota-app .provider-row:last-child { border: 0; }
+      .quota-app .provider-name { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 650; }
+      .quota-app .provider-meta { color: #8d887f; font-size: 9px; margin: 4px 0 0 14px; }
+      .quota-app .provider-num { text-align: right; font-size: 11px; font-weight: 650; }
+      .quota-app .provider-num small { display: block; color: #969087; font-size: 8px; margin-top: 3px; }
+      .quota-app .notice { background: #fcf0dc; border-color: #e8c997; }
+      .quota-app .notice-title { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; color: #725522; }
+      .quota-app .notice p { margin: 8px 0 0; color: #866c3e; font-size: 9px; line-height: 1.5; }
+    </style>
+  </head>
+  <body>
+    <design-document theme="light">
+      <design-round marker="2">
+        <design-header>Cyberdeck alignment</design-header>
+        <design-note>These directions reuse the visual grammar found in Ops Center and AgentForge: tactical mono typography, cyan frame lines, amber labels, multi-color telemetry, compact uppercase controls, live system copy, and restrained neon glow. They refine <design-link marker="1a">the operations table</design-link> and <design-link marker="1b">the project workspace</design-link>.</design-note>
+        <design-options>
+          <design-option marker="2a">
+            <design-header>Mission control HUD</design-header>
+            <design-card>
+              <main class="app cyber hud">
+                <aside class="sidebar">
+                  <div class="brand"><div class="brand-mark">H</div><div><strong>HOME//CORE</strong><small>Local command v0.1</small></div></div>
+                  <div class="sysline"><span><i class="cy-dot"></i>&nbsp; systems nominal</span><span>SEC:LOCAL</span></div>
+                  <nav class="nav">
+                    <div class="nav-item"><i data-lucide="command" class="icon icon-sm"></i>Overview</div>
+                    <div class="nav-label">Applications</div>
+                    <div class="nav-item active"><i data-lucide="route" class="icon icon-sm"></i>LLM Router<span class="right">01</span></div>
+                    <div class="nav-item"><i data-lucide="key-round" class="icon icon-sm"></i>Crypto Keys<span class="right">08</span></div>
+                    <div class="nav-item"><i data-lucide="radio-tower" class="icon icon-sm"></i>Services<span class="right">05</span></div>
+                    <div class="nav-label">Router Intel</div>
+                    <div class="nav-item"><i data-lucide="boxes" class="icon icon-sm"></i>Providers</div>
+                    <div class="nav-item"><i data-lucide="scroll-text" class="icon icon-sm"></i>Request Log</div>
+                    <div class="nav-item"><i data-lucide="shield-check" class="icon icon-sm"></i>Policies</div>
+                  </nav>
+                  <div class="sidebar-foot"><span>SYS::ACTIVE</span><div><span>Gateway</span><span style="color:var(--green)">18ms</span></div><div><span>localhost:4070</span><span>v0.1.0</span></div></div>
+                </aside>
+                <section class="viewport">
+                  <header class="page-head"><div><div class="cy-kicker">// Routing intelligence</div><div class="cy-title">Project Control</div><p>Quota telemetry · provider routing · access state</p></div><div class="head-actions"><span class="cy-tag"><i class="cy-dot"></i>Live telemetry</span><button class="cy-icon-btn" title="Refresh"><i data-lucide="refresh-cw" class="icon icon-sm"></i></button><button class="cy-icon-btn" title="Settings"><i data-lucide="sliders-horizontal" class="icon icon-sm"></i></button></div></header>
+                  <section class="metrics">
+                    <div class="cy-panel metric"><div class="metric-label"><span>Monthly spend</span><i data-lucide="banknote" class="icon icon-sm"></i></div><div class="metric-value">$184.62</div><div class="metric-foot" style="color:var(--green)">▼ 8.4% // prior cycle</div></div>
+                    <div class="cy-panel metric"><div class="metric-label"><span>Tokens routed</span><i data-lucide="binary" class="icon icon-sm"></i></div><div class="metric-value" style="color:var(--cyan)">42.8M</div><div class="metric-foot">1.42M // current day</div></div>
+                    <div class="cy-panel metric"><div class="metric-label"><span>Request volume</span><i data-lucide="activity" class="icon icon-sm"></i></div><div class="metric-value" style="color:var(--magenta)">18,294</div><div class="metric-foot">99.7% // successful</div></div>
+                    <div class="cy-panel metric"><div class="metric-label"><span>Budget available</span><i data-lucide="gauge" class="icon icon-sm"></i></div><div class="metric-value" style="color:var(--green)">$225.38</div><div class="metric-foot">55% // combined reserve</div></div>
+                  </section>
+                  <div class="workspace">
+                    <section class="cy-panel projects">
+                      <header class="panel-head"><div><h2>// Project allocation matrix</h2><small>4 registered workloads · UTC accounting cycle</small></div><span class="cy-tag">August 2026</span></header>
+                      <div class="columns"><div>Project node</div><div>Spend</div><div>Quota load</div><div>Route policy</div><div>State</div></div>
+                      <div class="project-row"><div><div class="project-name"><i class="cy-dot"></i>OPS_CENTER</div><div class="project-meta">PRJ_OPS_7F4A · 2M AGO</div></div><div class="money">$82.14</div><div class="budget"><div class="budget-top"><span>82 / 120</span><b>68%</b></div><div class="bar"><span style="width:68%"></span></div></div><div class="route"><b class="auto">AUTO_SELECT</b>3 providers</div><button class="switch on" aria-label="Disable Ops Center"></button></div>
+                      <div class="project-row"><div><div class="project-name"><i class="cy-dot warn"></i>MARK_MESH</div><div class="project-meta">PRJ_MESH_9C21 · 8M AGO</div></div><div class="money">$61.28</div><div class="budget"><div class="budget-top"><span>61 / 70</span><b style="color:var(--amber)">88%</b></div><div class="bar warn"><span style="width:88%"></span></div></div><div class="route"><b>ANTHROPIC</b>pinned route</div><button class="switch on" aria-label="Disable Mark Mesh"></button></div>
+                      <div class="project-row"><div><div class="project-name"><i class="cy-dot"></i>LOCAL_FOUNDATION</div><div class="project-meta">PRJ_LOCAL_3B12 · 1H AGO</div></div><div class="money">$34.90</div><div class="budget"><div class="budget-top"><span>35 / 80</span><b>44%</b></div><div class="bar"><span style="width:44%"></span></div></div><div class="route"><b>OPENAI</b>pinned route</div><button class="switch on" aria-label="Disable Local Foundation"></button></div>
+                      <div class="project-row"><div><div class="project-name" style="color:#63877c"><i class="cy-dot off"></i>SANDBOX</div><div class="project-meta">PRJ_SAND_1E09 · 4D AGO</div></div><div class="money">$6.30</div><div class="budget"><div class="budget-top"><span>6 / 20</span><b>31%</b></div><div class="bar"><span style="width:31%"></span></div></div><div class="route"><b class="auto">AUTO_SELECT</b>disabled</div><button class="switch" aria-label="Enable Sandbox"></button></div>
+                      <div class="ticker">ROUTER::HEALTHY&nbsp;&nbsp; // &nbsp;&nbsp;LAST_SYNC 14:32:08Z&nbsp;&nbsp; // &nbsp;&nbsp;NEXT_QUOTA_RESET 04D:09H:27M&nbsp;&nbsp; // &nbsp;&nbsp;REQUEST_BUFFER NOMINAL</div>
+                    </section>
+                    <aside class="side-stack">
+                      <section class="cy-panel side-panel quota-alert"><div class="alert-title"><i data-lucide="triangle-alert" class="icon icon-sm"></i>Quota threshold</div><p>MARK_MESH projected to exhaust allocation in 03D. Review provider pin or increase monthly ceiling.</p></section>
+                      <section class="cy-panel side-panel providers"><div class="cy-kicker">// Provider channels</div><div class="provider-row"><div><div class="provider-name"><i class="cy-dot"></i>OPENAI</div><div class="provider-meta">HEALTHY · 620MS</div></div><div class="provider-cost">$78.40<small>42.5%</small></div></div><div class="provider-row"><div><div class="provider-name"><i class="cy-dot"></i>ANTHROPIC</div><div class="provider-meta">HEALTHY · 810MS</div></div><div class="provider-cost" style="color:var(--magenta)">$70.18<small>38.0%</small></div></div><div class="provider-row"><div><div class="provider-name"><i class="cy-dot warn"></i>GOOGLE</div><div class="provider-meta">ELEVATED · 1.2S</div></div><div class="provider-cost" style="color:var(--amber)">$36.04<small>19.5%</small></div></div></section>
+                    </aside>
+                  </div>
+                </section>
+              </main>
+            </design-card>
+            <design-note>Closest to Ops Center. It treats the router as another command surface in the local fleet: dense, alert-led, and optimized for cross-project scanning.</design-note>
+          </design-option>
+
+          <design-option marker="2b">
+            <design-header>Control plane workspace</design-header>
+            <design-card>
+              <main class="app cyber forge">
+                <aside class="sidebar">
+                  <div class="forge-brand"><div class="logo">H</div><div><strong>Home<span>Router</span></strong><small>Local control plane</small></div></div>
+                  <nav>
+                    <div class="forge-nav-item"><i data-lucide="layout-grid" class="icon icon-sm"></i>Overview</div>
+                    <div class="forge-nav-item active"><i data-lucide="folder-kanban" class="icon icon-sm"></i>Projects</div>
+                    <div class="forge-nav-item"><i data-lucide="boxes" class="icon icon-sm"></i>Providers</div>
+                    <div class="forge-nav-item"><i data-lucide="chart-no-axes-combined" class="icon icon-sm"></i>Usage</div>
+                    <div class="forge-nav-item"><i data-lucide="scroll-text" class="icon icon-sm"></i>Requests</div>
+                    <div class="forge-nav-item"><i data-lucide="key-round" class="icon icon-sm"></i>Secrets</div>
+                  </nav>
+                  <div class="forge-side-space"></div>
+                  <div class="online-box"><strong><i class="cy-dot"></i>&nbsp; Control plane online</strong>Live telemetry connected<br />gateway.home // 18 ms</div>
+                </aside>
+                <section class="main">
+                  <header class="page-header"><div><div class="cy-kicker">Cost telemetry</div><h1>LLM Usage</h1><p>Token volume, provider spend, and routing attribution for the current cycle.</p></div><div style="display:flex;gap:7px"><div class="date"><i data-lucide="calendar-days" class="icon icon-sm"></i>August 2026</div><button class="cy-icon-btn" title="Settings"><i data-lucide="settings" class="icon icon-sm"></i></button></div></header>
+                  <section class="metric-strip"><div class="fmetric"><div class="metric-icon"><i data-lucide="zap" class="icon icon-sm"></i></div><div><small>Calls</small><strong>18,294</strong><span>model requests</span></div></div><div class="fmetric"><div class="metric-icon" style="color:var(--magenta);border-color:#79395e"><i data-lucide="arrow-up-from-line" class="icon icon-sm"></i></div><div><small>Input</small><strong>33.1M</strong><span>prompt tokens</span></div></div><div class="fmetric"><div class="metric-icon" style="color:var(--amber);border-color:#6c5a2b"><i data-lucide="arrow-down-to-line" class="icon icon-sm"></i></div><div><small>Output</small><strong>9.7M</strong><span>completion tokens</span></div></div><div class="fmetric"><div class="metric-icon" style="color:var(--green)"><i data-lucide="banknote" class="icon icon-sm"></i></div><div><small>Cost</small><strong>$184.62</strong><span>estimated spend</span></div></div></section>
+                  <div class="main-grid">
+                    <section class="fpanel"><header class="fpanel-head"><div><h2>Project allocation</h2><p>Volume and spend by authenticated project</p></div><span>4 projects</span></header><div class="usage-row" style="height:29px;color:var(--amber);font-size:7px;text-transform:uppercase"><div>Project</div><div>Quota share</div><div>Calls</div><div>Cost</div></div><div class="usage-row"><div><strong>ops_center</strong><small>AUTO_SELECT · 3 providers</small></div><div><span class="share"><i style="width:68%"></i></span><small>$82 / $120</small></div><div>7,829</div><div class="cost">$82.14</div></div><div class="usage-row"><div><strong>mark_mesh</strong><small style="color:var(--magenta)">PINNED · ANTHROPIC</small></div><div><span class="share"><i style="width:88%;background:var(--amber)"></i></span><small>$61 / $70</small></div><div>5,614</div><div class="cost" style="color:var(--amber)">$61.28</div></div><div class="usage-row"><div><strong>local_foundation</strong><small style="color:var(--magenta)">PINNED · OPENAI</small></div><div><span class="share"><i style="width:44%"></i></span><small>$35 / $80</small></div><div>4,213</div><div class="cost">$34.90</div></div><div class="usage-row"><div><strong style="color:#63877c">sandbox</strong><small>DISABLED · AUTO_SELECT</small></div><div><span class="share"><i style="width:31%;background:#466a60"></i></span><small>$6 / $20</small></div><div>638</div><div class="cost" style="color:#63877c">$6.30</div></div><div class="usage-row"><div><strong>unattributed</strong><small>FALLBACK CHANNEL</small></div><div><span class="share"><i style="width:8%;background:var(--magenta)"></i></span><small>no quota</small></div><div>112</div><div class="cost" style="color:var(--magenta)">$1.08</div></div></section>
+                    <aside class="fpanel routing-panel"><header class="fpanel-head"><div><h2>Route policy</h2><p>Selected project configuration</p></div><span>PRJ_OPS</span></header><div class="selected"><div><strong>ops_center</strong><small>prj_ops_7f4a · active</small></div><button class="switch on" aria-label="Disable Ops Center"></button></div><div class="control"><label>Routing mode</label><select><option>Automatic · best available</option><option>Pin to provider</option></select></div><div class="control"><label>Provider override</label><select><option>No override</option><option>Anthropic</option><option>OpenAI</option><option>Google</option></select></div><div class="control"><label>Monthly ceiling</label><select><option>$120.00 USD</option><option>$150.00 USD</option></select></div><div class="control-note">FALLBACK::ENABLED<br />Requests move to the next healthy channel when the preferred route fails.</div><button class="apply">Apply routing policy</button></aside>
+                  </div>
+                </section>
+              </main>
+            </design-card>
+            <design-note>Closest to AgentForge. It keeps the cyberdeck identity but gives usage analysis and project configuration more breathing room, making it the calmer daily-driver option.</design-note>
+          </design-option>
+        </design-options>
+      </design-round>
+
+      <design-round marker="1">
+        <design-header>LLM router dashboard directions</design-header>
+        <design-note>Three information architectures for the first Home app. All prioritize project quota, active state, and routing policy while leaving room for more local apps later.</design-note>
+        <design-options>
+          <design-option marker="1a">
+            <design-header>Operations table</design-header>
+            <design-card>
+              <main class="app ops">
+                <nav class="rail" aria-label="Home applications">
+                  <div class="brand">H</div>
+                  <button class="rail-btn active" title="LLM Router"><i data-lucide="route" class="icon"></i></button>
+                  <button class="rail-btn" title="Activity"><i data-lucide="activity" class="icon"></i></button>
+                  <button class="rail-btn" title="Secrets"><i data-lucide="key-round" class="icon"></i></button>
+                  <div class="rail-spacer"></div>
+                  <button class="rail-btn" title="Settings"><i data-lucide="settings" class="icon"></i></button>
+                  <div class="avatar" style="background:#454940;color:#fff">LZ</div>
+                </nav>
+                <section class="main">
+                  <header class="top">
+                    <div class="title"><h1>LLM Router</h1><span class="env">Local gateway · healthy</span></div>
+                    <div class="top-actions"><button class="icon-btn" title="Refresh"><i data-lucide="refresh-cw" class="icon"></i></button><button class="icon-btn" title="Settings"><i data-lucide="sliders-horizontal" class="icon"></i></button></div>
+                  </header>
+                  <div class="content">
+                    <section class="metrics">
+                      <div class="metric"><div class="metric-label">Spend this month</div><div class="metric-value">$184.62</div><div class="metric-foot good">↓ 8.4% vs last month</div></div>
+                      <div class="metric"><div class="metric-label">Tokens routed</div><div class="metric-value">42.8M</div><div class="metric-foot">1.42M today</div></div>
+                      <div class="metric"><div class="metric-label">Requests</div><div class="metric-value">18,294</div><div class="metric-foot">99.7% successful</div></div>
+                      <div class="metric"><div class="metric-label">Provider status</div><div class="providers"><span class="provider"><i class="dot" style="background:#36a269"></i>OpenAI</span><span class="provider"><i class="dot" style="background:#36a269"></i>Anthropic</span><span class="provider"><i class="dot" style="background:#e09a32"></i>Google</span></div><div class="metric-foot">Gemini latency elevated</div></div>
+                    </section>
+                    <div class="toolbar"><div class="tabs"><button class="tab active">Projects</button><button class="tab">Providers</button><button class="tab">Requests</button></div><div class="search"><i data-lucide="search" class="icon icon-sm"></i>Search projects</div></div>
+                    <section class="table">
+                      <div class="tr th"><div>Project</div><div>Spend</div><div>Monthly quota</div><div>Routing</div><div>Requests</div><div>Active</div></div>
+                      <div class="tr"><div class="project"><div class="project-mark">OC</div><div><div class="project-name">Ops Center</div><div class="project-sub">Last request 2 min ago</div></div></div><div class="number">$82.14</div><div class="quota"><div class="quota-top"><span>$82 / $120</span><b>68%</b></div><div class="bar"><span style="width:68%"></span></div></div><div class="route auto"><i data-lucide="shuffle" class="icon icon-sm"></i>Automatic</div><div class="number">7,829</div><button class="switch on" aria-label="Disable Ops Center"></button></div>
+                      <div class="tr"><div class="project"><div class="project-mark">MM</div><div><div class="project-name">Mark Mesh</div><div class="project-sub">Last request 8 min ago</div></div></div><div class="number">$61.28</div><div class="quota"><div class="quota-top"><span>$61 / $70</span><b>88%</b></div><div class="bar warn"><span style="width:88%"></span></div></div><div class="route"><i class="dot" style="background:#b06d43"></i>Anthropic</div><div class="number">5,614</div><button class="switch on" aria-label="Disable Mark Mesh"></button></div>
+                      <div class="tr"><div class="project"><div class="project-mark">LF</div><div><div class="project-name">Local Foundation</div><div class="project-sub">Last request 1 hr ago</div></div></div><div class="number">$34.90</div><div class="quota"><div class="quota-top"><span>$35 / $80</span><b>44%</b></div><div class="bar"><span style="width:44%"></span></div></div><div class="route"><i class="dot" style="background:#457c69"></i>OpenAI</div><div class="number">4,213</div><button class="switch on" aria-label="Disable Local Foundation"></button></div>
+                      <div class="tr"><div class="project"><div class="project-mark">SB</div><div><div class="project-name">Sandbox</div><div class="project-sub">Last request 4 days ago</div></div></div><div class="number">$6.30</div><div class="quota"><div class="quota-top"><span>$6 / $20</span><b>31%</b></div><div class="bar"><span style="width:31%"></span></div></div><div class="route auto"><i data-lucide="shuffle" class="icon icon-sm"></i>Automatic</div><div class="number">638</div><button class="switch" aria-label="Enable Sandbox"></button></div>
+                    </section>
+                  </div>
+                </section>
+              </main>
+            </design-card>
+            <design-note>Best for daily administration across many projects. High scan density keeps quota, spend, routing, and enable state directly comparable.</design-note>
+          </design-option>
+
+          <design-option marker="1b">
+            <design-header>Project focus</design-header>
+            <design-card>
+              <main class="app focus">
+                <aside class="side">
+                  <div class="side-head"><div class="brand">H</div><div class="brand-name">Home</div></div>
+                  <div class="side-label">Apps</div>
+                  <div class="side-link active"><i data-lucide="route" class="icon"></i>LLM Router</div>
+                  <div class="side-link"><i data-lucide="key-round" class="icon"></i>Secrets<span class="count">8</span></div>
+                  <div class="side-link"><i data-lucide="radio-tower" class="icon"></i>Services<span class="count">5</span></div>
+                  <div class="side-label">Router</div>
+                  <div class="side-link"><i data-lucide="folder-kanban" class="icon"></i>Projects</div>
+                  <div class="side-link"><i data-lucide="boxes" class="icon"></i>Providers</div>
+                  <div class="side-link"><i data-lucide="scroll-text" class="icon"></i>Request log</div>
+                  <div class="side-spacer"></div>
+                  <div class="health"><strong>Gateway healthy</strong><div class="health-line"><span>localhost:4000</span><span style="color:#23816e">18 ms</span></div></div>
+                </aside>
+                <section class="work">
+                  <header class="top"><h1><span class="crumb">LLM Router /</span> Projects</h1><div class="top-actions"><select class="period"><option>August 2026</option></select><button class="primary"><i data-lucide="plus" class="icon icon-sm"></i>New project</button><div class="avatar" style="background:#dbe1e3;color:#4c555d">LZ</div></div></header>
+                  <div class="body">
+                    <div class="left">
+                      <div class="project-strip"><button class="project-chip active">Ops Center</button><button class="project-chip">Mark Mesh</button><button class="project-chip">Local Foundation</button><button class="project-chip">Sandbox</button></div>
+                      <section class="usage"><div class="panel-head"><div><h2>Usage over time</h2><div class="muted">Daily cost split by provider</div></div><div><div class="usage-total">$82.14</div><div class="muted">68% of monthly quota</div></div></div><div class="chart"><span style="height:32%"></span><span style="height:47%"></span><span style="height:38%"></span><span style="height:61%"></span><span style="height:52%"></span><span style="height:72%"></span><span style="height:49%"></span><span style="height:66%"></span><span style="height:81%"></span><span style="height:58%"></span><span style="height:74%"></span><span style="height:91%"></span><span style="height:69%"></span><span style="height:78%"></span><span style="height:64%"></span><span style="height:88%"></span><span style="height:72%"></span><span style="height:83%"></span></div><div class="chart-labels"><span>Aug 1</span><span>Aug 7</span><span>Aug 14</span><span>Aug 21</span><span>Aug 27</span></div></section>
+                      <section class="models"><div class="model-row" style="background:#f7f8f8;color:#7f868c;font-size:9px;text-transform:uppercase;font-weight:700"><div>Model</div><div>Tokens</div><div>Cost</div><div></div></div><div class="model-row"><div class="model-name"><i class="dot" style="background:#c74431"></i>claude-sonnet-4</div><div>12.7M</div><div>$48.20</div><div class="spark"><span style="height:30%;background:#d2d6d8"></span><span style="height:60%;background:#d2d6d8"></span><span style="height:85%;background:#c74431"></span></div></div><div class="model-row"><div class="model-name"><i class="dot" style="background:#2c8a83"></i>gpt-5-mini</div><div>8.1M</div><div>$24.84</div><div class="spark"><span style="height:70%;background:#bfcfcd"></span><span style="height:42%;background:#bfcfcd"></span><span style="height:58%;background:#2c8a83"></span></div></div><div class="model-row"><div class="model-name"><i class="dot" style="background:#d7a229"></i>gemini-2.5-flash</div><div>4.2M</div><div>$9.10</div><div class="spark"><span style="height:54%;background:#ddd5be"></span><span style="height:74%;background:#ddd5be"></span><span style="height:39%;background:#d7a229"></span></div></div></section>
+                    </div>
+                    <aside class="right">
+                      <section class="panel"><div class="state-head"><div><h2>Project routing</h2><div class="muted">Accepting requests</div></div><button class="switch on" aria-label="Disable project"></button></div><label class="field-label">Routing policy</label><select class="select"><option>Automatic · best available</option><option>Pin to provider</option></select><label class="field-label">Provider override</label><select class="select"><option>No override</option><option>Anthropic</option><option>OpenAI</option><option>Google</option></select><div class="callout">Fallback remains enabled. Requests move to the next healthy provider if the preferred route fails.</div><button class="save">Save routing policy</button></section>
+                      <section class="panel"><h2>Monthly quota</h2><div class="quota-ring"><div class="quota-value">68%<small>$82.14 used</small></div></div><div class="quota-meta"><span>Renews Sep 1</span><strong>$37.86 left</strong></div></section>
+                    </aside>
+                  </div>
+                </section>
+              </main>
+            </design-card>
+            <design-note>Best when routing configuration and usage diagnosis happen together. Selecting a project turns the page into a focused operational workspace.</design-note>
+          </design-option>
+
+          <design-option marker="1c">
+            <design-header>Quota control board</design-header>
+            <design-card>
+              <main class="app quota-app">
+                <header class="header"><div class="identity"><div class="wordmark">home<span class="slash">/</span></div><div class="product">LLM router</div></div><div class="header-actions"><button class="icon-btn" title="Request log"><i data-lucide="scroll-text" class="icon"></i></button><button class="icon-btn" title="Settings"><i data-lucide="settings" class="icon"></i></button><div class="avatar" style="background:#263b36;color:white">LZ</div></div></header>
+                <section class="summary"><div class="headline"><div class="headline-label">Available monthly budget</div><div class="headline-value">$225.38</div><div class="headline-foot"><span>$184.62 used of $410.00</span><span>45%</span></div><div class="bar" style="background:#4a5c57;margin-top:7px"><span style="width:45%;background:#e6c164"></span></div></div><div class="summary-card"><div class="summary-label">Today</div><div class="summary-value">$12.84</div><div class="summary-sub">1.42M tokens · 612 requests</div></div><div class="summary-card"><div class="summary-label">Projected</div><div class="summary-value">$203.10</div><div class="summary-sub">49.5% of combined budget</div></div><div class="summary-card"><div class="summary-label">Routing health</div><div class="summary-value" style="color:#308171">99.7%</div><div class="summary-sub">3 providers · 1 warning</div></div></section>
+                <div class="grid"><section class="board"><div class="board-head"><h2>Project budgets</h2><div class="seg"><button class="active">Quota</button><button>Spend</button><button>Requests</button></div></div><div class="project-row"><div class="project-id"><div class="project-icon">OC</div><div><div class="project-name">Ops Center</div><div class="project-key">prj_ops_7f4a</div></div></div><div class="budget"><div class="budget-line"><span>$82.14 / $120</span><strong>68%</strong></div><div class="bar"><span style="width:68%"></span></div></div><div class="policy"><strong>Automatic</strong><span>3 providers</span></div><div class="toggle-cell"><button class="switch on" aria-label="Disable Ops Center"></button></div></div><div class="project-row"><div class="project-id"><div class="project-icon">MM</div><div><div class="project-name">Mark Mesh</div><div class="project-key">prj_mesh_9c21</div></div></div><div class="budget"><div class="budget-line"><span>$61.28 / $70</span><strong style="color:#a85231">88%</strong></div><div class="bar warn"><span style="width:88%"></span></div></div><div class="policy"><strong>Anthropic</strong><span>Pinned</span></div><div class="toggle-cell"><button class="switch on" aria-label="Disable Mark Mesh"></button></div></div><div class="project-row"><div class="project-id"><div class="project-icon">LF</div><div><div class="project-name">Local Foundation</div><div class="project-key">prj_local_3b12</div></div></div><div class="budget"><div class="budget-line"><span>$34.90 / $80</span><strong>44%</strong></div><div class="bar"><span style="width:44%"></span></div></div><div class="policy"><strong>OpenAI</strong><span>Pinned</span></div><div class="toggle-cell"><button class="switch on" aria-label="Disable Local Foundation"></button></div></div><div class="project-row"><div class="project-id"><div class="project-icon">SB</div><div><div class="project-name">Sandbox</div><div class="project-key">prj_sand_1e09</div></div></div><div class="budget"><div class="budget-line"><span>$6.30 / $20</span><strong>31%</strong></div><div class="bar"><span style="width:31%"></span></div></div><div class="policy"><strong>Automatic</strong><span>Disabled</span></div><div class="toggle-cell"><button class="switch" aria-label="Enable Sandbox"></button></div></div></section><aside class="insights"><section class="insight notice"><div class="notice-title"><i data-lucide="triangle-alert" class="icon icon-sm"></i>Quota attention</div><p>Mark Mesh is projected to reach its $70 limit in 3 days. Increase the quota or review its pinned route.</p></section><section class="insight providers"><h2>Provider allocation</h2><div class="provider-row"><div><div class="provider-name"><i class="dot" style="background:#308171"></i>OpenAI</div><div class="provider-meta">Healthy · 620 ms</div></div><div class="provider-num">$78.40<small>42.5%</small></div></div><div class="provider-row"><div><div class="provider-name"><i class="dot" style="background:#c56d45"></i>Anthropic</div><div class="provider-meta">Healthy · 810 ms</div></div><div class="provider-num">$70.18<small>38.0%</small></div></div><div class="provider-row"><div><div class="provider-name"><i class="dot" style="background:#d3a437"></i>Google</div><div class="provider-meta">Elevated · 1.2 s</div></div><div class="provider-num">$36.04<small>19.5%</small></div></div></section></aside></div>
+              </main>
+            </design-card>
+            <design-note>Best for budget ownership. It makes remaining capacity and quota risk the strongest signals, with routing policy visible as supporting context.</design-note>
+          </design-option>
+        </design-options>
+      </design-round>
+    </design-document>
+    <script>window.addEventListener("load", () => { if (window.lucide) lucide.createIcons(); document.querySelectorAll(".switch").forEach((button) => button.addEventListener("click", () => button.classList.toggle("on"))); });</script>
+  </body>
+</html>

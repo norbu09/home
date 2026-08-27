@@ -1,0 +1,225 @@
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  active_nav={:overview}
+  secret_count={@secret_count}
+>
+  <header id="overview-header" class="router-page-header tactical-header">
+    <div>
+      <span class="router-kicker">// Personal operations surface</span>
+      <h1>TACTICAL OVERVIEW</h1>
+      <p>{Calendar.strftime(@today, "%A · %d %B %Y")} // local command state</p>
+    </div>
+    <div class="overview-clock">
+      <span>UTC STATUS</span><strong>{Calendar.strftime(@snapshot.updated_at, "%H:%M")}</strong>
+    </div>
+  </header>
+
+  <section id="overview-vitals" class="router-metrics overview-vitals" aria-label="Current status">
+    <.metric
+      id="overview-projects"
+      label="Active workstreams"
+      value={@active_projects}
+      detail="LLM activity this month"
+      icon="hero-squares-2x2"
+      tone="cyan"
+    />
+    <.metric
+      id="overview-calls"
+      label="Calls today"
+      value={@today_calls}
+      detail="through local router"
+      icon="hero-bolt"
+      tone="green"
+    />
+    <.metric
+      id="overview-tokens"
+      label="Tokens today"
+      value={@today_tokens}
+      detail="input + output"
+      icon="hero-code-bracket"
+      tone="magenta"
+    />
+    <.metric
+      id="overview-cost"
+      label="Month cost"
+      value={@month_cost}
+      detail="persisted + live"
+      icon="hero-banknotes"
+      tone="green"
+    />
+  </section>
+
+  <div class="tactical-grid">
+    <section id="current-focus" class="cyber-panel tactical-panel tactical-focus">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Current focus</h2><p>Inferred from work routed through local models</p>
+        </div>
+        <span class="cyber-tag">LIVE SIGNAL</span>
+      </header>
+      <div id="focus-stream" phx-update="stream" class="focus-list">
+        <div :if={@focuses_empty?} id="focus-empty" class="tactical-empty">
+          <.icon name="hero-signal-slash" class="size-5" /><span>No attributed model work this month</span>
+        </div>
+        <article :for={{id, focus} <- @streams.focuses} id={id} class="focus-row">
+          <div class="focus-rank"></div>
+          <div>
+            <strong>{String.upcase(focus.name)}</strong><span>{focus.calls} routed calls · {compact(
+              focus.tokens
+            )} tokens</span>
+          </div>
+          <div>
+            <strong>{money(focus.cost)}</strong><span>{timestamp(focus.last_seen_at)}</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="upcoming-meetings" class="cyber-panel tactical-panel">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Upcoming meetings</h2><p>Next commitments in UTC</p>
+        </div>
+        <button
+          id="add-meeting"
+          class="cyber-icon-button"
+          phx-click="toggle_form"
+          phx-value-kind="meeting"
+          title="Add meeting"
+          aria-label="Add meeting"
+        ><.icon name="hero-plus" class="size-4" /></button>
+      </header>
+      <.form
+        :if={@show_meeting_form}
+        for={@meeting_form}
+        id="meeting-form"
+        phx-submit="save_meeting"
+        class="tactical-inline-form"
+      >
+        <.input
+          field={@meeting_form[:title]}
+          type="text"
+          placeholder="Meeting title"
+          class="cyber-text-input"
+        />
+        <.input field={@meeting_form[:starts_at]} type="datetime-local" class="cyber-text-input" />
+        <.input
+          field={@meeting_form[:notes]}
+          type="text"
+          placeholder="Context or location"
+          class="cyber-text-input"
+        />
+        <button type="submit" class="cyber-primary-button">Schedule</button>
+      </.form>
+      <div id="meeting-stream" phx-update="stream" class="tactical-item-list">
+        <div :if={@meetings_empty?} id="meetings-empty" class="tactical-empty">
+          <.icon name="hero-calendar-days" class="size-5" /><span>No upcoming meetings recorded</span>
+        </div>
+        <article :for={{id, meeting} <- @streams.meetings} id={id} class="tactical-item-row">
+          <time>{meeting_time(meeting.starts_at)}</time><strong>{meeting.title}</strong><span>{meeting.notes ||
+            "No context attached"}</span>
+          <button
+            id={"dismiss-meeting-#{meeting.id}"}
+            phx-click="dismiss_item"
+            phx-value-id={meeting.id}
+            class="cyber-icon-button"
+            title="Dismiss meeting"
+            aria-label={"Dismiss #{meeting.title}"}
+          ><.icon name="hero-x-mark" class="size-3" /></button>
+        </article>
+      </div>
+    </section>
+
+    <section id="personal-goals" class="cyber-panel tactical-panel tactical-goals">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Personal goals</h2><p>{@goal_progress}% complete in current stack</p>
+        </div>
+        <button
+          id="add-goal"
+          class="cyber-icon-button"
+          phx-click="toggle_form"
+          phx-value-kind="goal"
+          title="Add goal"
+          aria-label="Add goal"
+        ><.icon name="hero-plus" class="size-4" /></button>
+      </header>
+      <.form
+        :if={@show_goal_form}
+        for={@goal_form}
+        id="goal-form"
+        phx-submit="save_goal"
+        class="tactical-inline-form goal-form"
+      >
+        <.input
+          field={@goal_form[:title]}
+          type="text"
+          placeholder="Objective"
+          class="cyber-text-input"
+        />
+        <.input field={@goal_form[:due_on]} type="date" class="cyber-text-input" />
+        <.input
+          field={@goal_form[:priority]}
+          type="select"
+          options={[{"Priority 1", 1}, {"Priority 2", 2}, {"Priority 3", 3}]}
+          class="cyber-text-input"
+        />
+        <button type="submit" class="cyber-primary-button">Commit</button>
+      </.form>
+      <div id="goal-stream" phx-update="stream" class="goal-list">
+        <div :if={@goals_empty?} id="goals-empty" class="tactical-empty">
+          <.icon name="hero-flag" class="size-5" /><span>No personal goals defined</span>
+        </div>
+        <article
+          :for={{id, goal} <- @streams.goals}
+          id={id}
+          class={["goal-row", goal.status == "completed" && "is-complete"]}
+        >
+          <button
+            id={"toggle-goal-#{goal.id}"}
+            phx-click="toggle_goal"
+            phx-value-id={goal.id}
+            class="goal-check"
+            aria-label={"Toggle #{goal.title}"}
+          ><.icon
+            name={if goal.status == "completed", do: "hero-check", else: "hero-minus"}
+            class="size-3"
+          /></button>
+          <div>
+            <strong>{goal.title}</strong><span>P{goal.priority} · {due_date(goal.due_on)}</span>
+          </div>
+          <button
+            id={"dismiss-goal-#{goal.id}"}
+            phx-click="dismiss_item"
+            phx-value-id={goal.id}
+            class="cyber-icon-button"
+            title="Dismiss goal"
+            aria-label={"Dismiss #{goal.title}"}
+          ><.icon name="hero-x-mark" class="size-3" /></button>
+        </article>
+      </div>
+    </section>
+
+    <section id="cognee-insights" class="cyber-panel tactical-panel tactical-insights">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Cognee insights</h2><p>Memory signals promoted into tactical context</p>
+        </div>
+        <span class={["cyber-status-label", @insights_empty? && "is-idle"]}>{if @insights_empty?,
+          do: "AWAITING SIGNAL",
+          else: "SYNCED"}</span>
+      </header>
+      <div id="insight-stream" phx-update="stream" class="insight-list">
+        <div :if={@insights_empty?} id="insights-empty" class="tactical-empty insight-empty">
+          <.icon name="hero-circle-stack" class="size-5" /><strong>Insight channel ready</strong><span>Cognee can write records with source=cognee into the tactical item store.</span>
+        </div>
+        <article :for={{id, insight} <- @streams.insights} id={id} class="insight-row">
+          <span>P{insight.priority}</span><div>
+            <strong>{insight.title}</strong><p>{insight.notes}</p>
+          </div>
+        </article>
+      </div>
+    </section>
+  </div>
+</Layouts.app>

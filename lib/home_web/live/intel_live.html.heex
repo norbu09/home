@@ -1,0 +1,184 @@
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  active_nav={@active_nav}
+  secret_count={@secret_count}
+>
+  <header id="intel-header" class="router-page-header">
+    <div>
+      <span class="router-kicker">{@page_kicker}</span><h1>{@page_heading}</h1><p>
+        {@page_summary}
+      </p>
+    </div>
+    <button
+      id="refresh-intel"
+      class="cyber-icon-button"
+      phx-click="refresh"
+      title="Refresh status"
+      aria-label="Refresh status"
+    ><.icon name="hero-arrow-path" class="size-4" /></button>
+  </header>
+
+  <%= case @live_action do %>
+    <% :services -> %>
+      <section id="services-summary" class="router-metrics intel-summary">
+        <.metric
+          id="service-total"
+          label="Registered services"
+          value={@service_count}
+          detail="local supervision mesh"
+          icon="hero-server-stack"
+          tone="cyan"
+        />
+        <.metric
+          id="service-online"
+          label="Online"
+          value={@healthy_count}
+          detail="responding processes"
+          icon="hero-signal"
+          tone="green"
+        />
+      </section>
+      <section id="service-registry" class="cyber-panel intel-panel">
+        <header class="cyber-panel-header">
+          <div>
+            <h2>// Runtime registry</h2><p>Live process presence from the current BEAM node</p>
+          </div><span class="cyber-tag">NODE {node()}</span>
+        </header>
+        <div class="intel-columns service-columns">
+          <span>Service</span><span>Responsibility</span><span>Process</span><span>PID</span><span>State</span>
+        </div>
+        <div id="service-stream" phx-update="stream" class="intel-rows">
+          <article :for={{id, service} <- @streams.services} id={id} class="intel-row service-row">
+            <strong>{service.name}</strong><span>{service.detail}</span><code>{service.process}</code><code>{service.pid}</code><em class={
+              service.status == "ONLINE" && "is-online"
+            }>{service.status}</em>
+          </article>
+        </div>
+      </section>
+    <% :providers -> %>
+      <section id="providers-summary" class="router-metrics intel-summary">
+        <.metric
+          id="provider-total"
+          label="Known providers"
+          value={@provider_count}
+          detail="Agentic registry"
+          icon="hero-cube-transparent"
+          tone="cyan"
+        />
+        <.metric
+          id="provider-configured"
+          label="Configured"
+          value={@configured_count}
+          detail="credential-ready routes"
+          icon="hero-key"
+          tone="green"
+        />
+      </section>
+      <section id="provider-registry" class="cyber-panel intel-panel">
+        <header class="cyber-panel-header">
+          <div>
+            <h2>// Provider registry</h2><p>No remote polling · status reflects local traffic</p>
+          </div><span class="cyber-tag">{length(@provider_options) - 1} ROUTES</span>
+        </header>
+        <div class="intel-columns provider-columns">
+          <span>Provider</span><span>Credentials</span><span>Models</span><span>Calls</span><span>Latency</span><span>Spend</span><span>State</span>
+        </div>
+        <div id="provider-stream" phx-update="stream" class="intel-rows">
+          <article
+            :for={{id, provider} <- @streams.providers}
+            id={id}
+            class="intel-row provider-row"
+          >
+            <strong>{provider.name}</strong><code>{provider.credentials}</code><span>{provider.models}</span><span>{provider.calls}</span><span>{provider.latency}</span><span>{provider.cost}</span><em class={
+              provider.status in ["READY", "HEALTHY"] && "is-online"
+            }>{provider.status}</em>
+          </article>
+        </div>
+      </section>
+    <% :requests -> %>
+      <section id="requests-summary" class="router-metrics intel-summary">
+        <.metric
+          id="batch-total"
+          label="Visible batches"
+          value={@batch_count}
+          detail="latest persisted sweeps"
+          icon="hero-document-text"
+          tone="cyan"
+        />
+      </section>
+      <section id="request-registry" class="cyber-panel intel-panel">
+        <header class="cyber-panel-header">
+          <div>
+            <h2>// Accounting batches</h2><p>
+              Append-only historical usage · no prompt content stored
+            </p>
+          </div><span class="cyber-tag">METADATA ONLY</span>
+        </header>
+        <div class="intel-columns request-columns">
+          <span>Recorded</span><span>Project</span><span>Route</span><span>Model</span><span>Calls</span><span>Tokens</span><span>Avg latency</span><span>Cost</span>
+        </div>
+        <div id="request-stream" phx-update="stream" class="intel-rows">
+          <div :if={@request_batches_empty?} id="requests-empty" class="tactical-empty">
+            <.icon name="hero-document-magnifying-glass" class="size-5" /><span>No accounting batches persisted</span>
+          </div>
+          <article :for={{id, request} <- @streams.requests} id={id} class="intel-row request-row">
+            <time>{request.recorded_at}</time><strong>{String.upcase(request.project)}</strong><span>{String.upcase(
+              request.provider
+            )}</span><code>{request.model}</code><span>{request.calls}</span><span>{request.tokens}</span><span>{request.latency}</span><em>{request.cost}</em>
+          </article>
+        </div>
+      </section>
+    <% :policies -> %>
+      <section id="policies-summary" class="router-metrics intel-summary">
+        <.metric
+          id="policy-total"
+          label="Project policies"
+          value={@policy_count}
+          detail="live ETS controls"
+          icon="hero-shield-check"
+          tone="green"
+        />
+      </section>
+      <section id="policy-registry" class="cyber-panel intel-panel">
+        <header class="cyber-panel-header">
+          <div>
+            <h2>// Routing policy matrix</h2><p>Changes apply to the next request immediately</p>
+          </div><span class="cyber-tag">HOT CONFIG</span>
+        </header>
+        <div class="intel-columns policy-columns">
+          <span>Project</span><span>Monthly quota</span><span>Current spend</span><span>Provider constraint</span><span>Access</span>
+        </div>
+        <div id="policy-stream" phx-update="stream" class="intel-rows">
+          <article
+            :for={{id, policy} <- @streams.policies}
+            id={id}
+            class={["intel-row", "policy-row", !policy.enabled && "is-disabled"]}
+          >
+            <div><strong>{String.upcase(policy.name)}</strong><code>{policy.id}</code></div><span>{money(
+              policy.quota_usd
+            )}</span><span>{money(policy.cost_usd)}</span>
+            <.form for={policy.form} id={"policy-provider-#{policy.id}"} phx-change="set_provider">
+              <input type="hidden" name="_id" value={policy.id} /><.input
+                field={policy.form[:provider]}
+                id={"policy-provider-select-#{policy.id}"}
+                type="select"
+                options={@provider_options}
+                class="cyber-text-input"
+              />
+            </.form>
+            <button
+              id={"policy-toggle-#{policy.id}"}
+              phx-click="toggle_policy"
+              phx-value-id={policy.id}
+              class={["cyber-toggle", policy.enabled && "is-enabled"]}
+              aria-label={
+                if policy.enabled, do: "Disable #{policy.name}", else: "Enable #{policy.name}"
+              }
+              aria-pressed={policy.enabled}
+            ><span></span></button>
+          </article>
+        </div>
+      </section>
+  <% end %>
+</Layouts.app>

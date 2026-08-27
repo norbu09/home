@@ -9,9 +9,13 @@ defmodule Home.Application do
   def start(_type, _args) do
     children = [
       HomeWeb.Telemetry,
+      Home.Vault,
       Home.Repo,
       {DNSCluster, query: Application.get_env(:home, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Home.PubSub},
+      Home.LLMProxy.ProviderHealth,
+      Home.LLMProxy.UsageTracker,
+      Home.LLMProxy.ModelRouteRefresher,
       # Start a worker by calling: Home.Worker.start_link(arg)
       # {Home.Worker, arg},
       # Start to serve requests, typically the last entry

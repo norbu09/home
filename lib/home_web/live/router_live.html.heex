@@ -1,0 +1,238 @@
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  active_nav={:router}
+  secret_count={@secret_count}
+>
+  <header id="router-header" class="router-page-header">
+    <div>
+      <span class="cyber-eyebrow">// Routing intelligence</span>
+      <h1>Project Control</h1>
+      <p>Quota telemetry · provider routing · access state</p>
+    </div>
+    <div class="router-header-actions">
+      <span class="cyber-tag"><i class="cyber-status-dot online"></i>Live telemetry</span>
+      <button
+        id="refresh-router"
+        class="cyber-icon-button"
+        phx-click="refresh"
+        title="Refresh telemetry"
+        aria-label="Refresh telemetry"
+      >
+        <.icon name="hero-arrow-path" class="size-4" />
+      </button>
+      <button
+        id="router-settings"
+        class="cyber-icon-button"
+        title="Router settings"
+        aria-label="Router settings"
+      >
+        <.icon name="hero-adjustments-horizontal" class="size-4" />
+      </button>
+    </div>
+  </header>
+
+  <section id="router-metrics" class="router-metrics" aria-label="Router metrics">
+    <.metric
+      id="monthly-spend"
+      label="Monthly spend"
+      value={@monthly_cost}
+      detail={@cost_delta}
+      icon="hero-banknotes"
+      tone="green"
+    />
+    <.metric
+      id="tokens-routed"
+      label="Tokens routed"
+      value={@total_tokens}
+      detail={"#{@today_tokens} // current day"}
+      icon="hero-code-bracket"
+      tone="cyan"
+    />
+    <.metric
+      id="request-volume"
+      label="Request volume"
+      value={@request_count}
+      detail={"#{@success_rate} // provider health"}
+      icon="hero-bolt"
+      tone="magenta"
+    />
+    <.metric
+      id="budget-available"
+      label="Budget available"
+      value={@budget_available}
+      detail={"#{100 - @budget_percent}% // combined reserve"}
+      icon="hero-chart-pie"
+      tone="green"
+    />
+  </section>
+
+  <div class="router-workspace">
+    <section id="project-allocation" class="cyber-panel router-projects">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Project allocation matrix</h2><p>
+            {@project_count} registered workloads · UTC accounting cycle
+          </p>
+        </div>
+        <span class="cyber-tag">{@month_label}</span>
+      </header>
+      <div class="router-project-columns" aria-hidden="true">
+        <span>Project node</span><span>Spend</span><span>Quota load</span><span>Route policy</span><span>State</span>
+      </div>
+      <div id="router-projects" phx-update="stream">
+        <article
+          :for={{id, project} <- @streams.projects}
+          id={id}
+          class={["router-project-row", !project.enabled && "is-disabled"]}
+          data-state={if project.enabled, do: "enabled", else: "disabled"}
+        >
+          <div class="router-project-identity">
+            <.link navigate={~p"/router/projects/#{project.id}"} class="router-project-link">
+              <strong><i class={[
+                "cyber-status-dot",
+                project.warning && "warning",
+                !project.enabled && "offline"
+              ]}></i>{project.code}</strong>
+              <small>{project.key} · {project.last_seen}</small>
+            </.link>
+          </div>
+          <div class="router-spend">
+            <strong>{project.spend}</strong><small>{project.requests} calls</small>
+          </div>
+          <div class="router-quota">
+            <span><small>${project.used} / ${project.limit_label}</small><strong class={
+              project.warning && "is-warning"
+            }>{project.percent}%</strong></span>
+            <i><em class={project.warning && "is-warning"} style={"width: #{project.percent}%"}></em></i>
+          </div>
+          <button
+            id={"project-route-#{project.id}"}
+            class="router-policy"
+            phx-click="select_project"
+            phx-value-id={project.id}
+            data-routing={
+              if project.routing_mode == "pinned", do: project.provider, else: "automatic"
+            }
+          >
+            <strong class={project.routing_mode == "automatic" && "is-auto"}>{routing_label(
+              project
+            )}</strong>
+            <small>{if project.routing_mode == "automatic",
+              do: "#{@provider_count} providers",
+              else: "pinned route"}</small>
+          </button>
+          <button
+            id={"project-toggle-#{project.id}"}
+            class={["cyber-switch", project.enabled && "is-on"]}
+            phx-click="toggle_project"
+            phx-value-id={project.id}
+            aria-label={
+              if project.enabled, do: "Disable #{project.name}", else: "Enable #{project.name}"
+            }
+            aria-pressed={project.enabled}
+          ><span></span></button>
+        </article>
+      </div>
+      <footer class="router-system-ticker">
+        ROUTER::HISTORY_ACTIVE&nbsp; // &nbsp;LAST_SYNC {Calendar.strftime(
+          @snapshot.updated_at,
+          "%H:%M:%SZ"
+        )}&nbsp; // &nbsp;CURRENT_CYCLE {@month_label}&nbsp; // &nbsp;ROUTE_REFRESH_ACTIVE
+      </footer>
+    </section>
+
+    <aside id="router-side-panel" class="router-side-stack">
+      <%= if @selected_project do %>
+        <section id="routing-inspector" class="cyber-panel routing-inspector">
+          <header class="routing-inspector-header">
+            <div>
+              <span class="cyber-eyebrow">// Route policy</span><h2>{@selected_project.code}</h2>
+            </div>
+            <button
+              id="close-routing-inspector"
+              class="cyber-icon-button"
+              phx-click="close_project"
+              title="Close"
+              aria-label="Close routing policy"
+            ><.icon name="hero-x-mark" class="size-4" /></button>
+          </header>
+          <.form for={@routing_form} id="routing-policy-form" phx-submit="save_routing">
+            <.input
+              field={@routing_form[:routing_mode]}
+              type="select"
+              label="Routing mode"
+              options={@routing_modes}
+              class="cyber-select"
+            />
+            <.input
+              field={@routing_form[:provider]}
+              type="select"
+              label="Provider override"
+              options={@provider_options}
+              class="cyber-select"
+            />
+            <div class="routing-fallback">
+              <strong>FALLBACK::ENABLED</strong><p>
+                Requests move to the next healthy channel when the preferred route fails.
+              </p>
+            </div>
+            <button id="save-routing-policy" class="cyber-primary-button" type="submit">Apply routing policy</button>
+          </.form>
+        </section>
+      <% else %>
+        <section
+          :if={@quota_warning && @quota_warning.warning}
+          id="quota-alert"
+          class="cyber-panel router-alert"
+        >
+          <h2><.icon name="hero-exclamation-triangle" class="size-4" />Quota threshold</h2>
+          <p>
+            {@quota_warning.code} has consumed {@quota_warning.percent}% of its configured monthly allocation. Review its provider pin or quota.
+          </p>
+        </section>
+        <section id="tool-activity" class="cyber-panel tool-activity">
+          <div>
+            <span class="cyber-eyebrow">// Tool activity</span>
+            <small>{@tool_count} tracked tools</small>
+          </div>
+          <div id="router-tools" phx-update="stream">
+            <article :for={{id, tool} <- @streams.tools} id={id} class="tool-channel">
+              <div>
+                <strong><i class="cyber-status-dot online"></i>{tool.name}</strong>
+                <small>{tool.category} · {tool.last_seen}</small>
+              </div>
+              <div>
+                <strong>{tool.spend}</strong>
+                <small>{tool.calls} calls · {tool.providers} · {tool.latency}</small>
+              </div>
+            </article>
+            <div id="tools-empty" class="tool-empty">No tool traffic yet</div>
+          </div>
+        </section>
+        <section id="provider-channels" class="cyber-panel provider-channels">
+          <span class="cyber-eyebrow">// Provider channels</span>
+          <div id="router-providers" phx-update="stream">
+            <article
+              :for={{id, provider} <- @streams.providers}
+              id={id}
+              class="provider-channel"
+            >
+              <div>
+                <strong><i class={[
+                  "cyber-status-dot",
+                  provider.configured && "online",
+                  provider.warning && "warning"
+                ]}></i>{provider.name}</strong>
+                <small>{provider.status} · {provider.latency}</small>
+              </div>
+              <div class={provider.warning && "is-amber"}>
+                <strong>{provider.cost}</strong><small>{provider.share} · {provider.calls} calls</small>
+              </div>
+            </article>
+          </div>
+        </section>
+      <% end %>
+    </aside>
+  </div>
+</Layouts.app>

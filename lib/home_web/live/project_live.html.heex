@@ -1,0 +1,206 @@
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  active_nav={:router}
+  secret_count={@secret_count}
+>
+  <header id="project-detail-header" class="router-page-header project-detail-header">
+    <div class="project-title-block">
+      <.link navigate={~p"/router"} class="project-back-link"><.icon
+        name="hero-arrow-left"
+        class="size-3"
+      /> Router matrix</.link>
+      <span class="router-kicker">// Project operations node</span>
+      <h1>{String.upcase(@details.policy.name)}</h1>
+      <p>
+        {@project_id} · {if @details.policy.enabled,
+          do: "REQUESTS ENABLED",
+          else: "PROJECT PAUSED"}
+      </p>
+    </div>
+    <div class="project-header-actions">
+      <span class={["project-state", @details.policy.enabled && "is-online"]}><i class="cyber-status-dot online"></i>{if @details.policy.enabled,
+        do: "ONLINE",
+        else: "PAUSED"}</span>
+      <button
+        id="refresh-project"
+        class="cyber-icon-button"
+        phx-click="refresh"
+        title="Refresh project"
+        aria-label="Refresh project"
+      ><.icon name="hero-arrow-path" class="size-4" /></button>
+    </div>
+  </header>
+
+  <section id="project-metrics" class="router-metrics" aria-label="Project usage summary">
+    <.metric
+      id="project-spend"
+      label="Monthly spend"
+      value={@month_cost}
+      detail={"#{@quota_percent}% of quota"}
+      icon="hero-banknotes"
+      tone="green"
+    />
+    <.metric
+      id="project-tokens"
+      label="Tokens routed"
+      value={@month_tokens}
+      detail="input + output this month"
+      icon="hero-code-bracket"
+      tone="cyan"
+    />
+    <.metric
+      id="project-calls"
+      label="Request volume"
+      value={@month_calls}
+      detail="completed provider calls"
+      icon="hero-bolt"
+      tone="magenta"
+    />
+    <.metric
+      id="project-average-cost"
+      label="Average call"
+      value={@average_cost}
+      detail="cost per completed call"
+      icon="hero-calculator"
+      tone="green"
+    />
+  </section>
+
+  <div class="project-detail-grid">
+    <section id="project-usage-timeline" class="cyber-panel project-timeline">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Usage signal</h2><p>Daily token volume · current UTC month</p>
+        </div><span class="cyber-tag">HISTORIC + LIVE</span>
+      </header>
+      <div id="project-daily-stream" phx-update="stream" class="project-bars">
+        <div :if={@daily_empty?} id="project-daily-empty" class="tactical-empty">
+          <.icon name="hero-chart-bar" class="size-5" /><span>No usage recorded for this project</span>
+        </div>
+        <article :for={{id, day} <- @streams.daily} id={id} class="project-bar-row">
+          <time>{day.date}</time><div><i style={"width: #{day.width}%"}></i></div><strong>{day.tokens}</strong><span>{day.calls} calls</span><em>{day.cost}</em>
+        </article>
+      </div>
+    </section>
+
+    <aside id="project-controls" class="cyber-panel project-controls">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Project controls</h2><p>Applied before the next routed request</p>
+        </div><span class="cyber-tag">HOT CONFIG</span>
+      </header>
+      <.form
+        for={@controls_form}
+        id="project-controls-form"
+        phx-submit="save_controls"
+        class="project-controls-form"
+      >
+        <.input
+          field={@controls_form[:default_model]}
+          type="select"
+          label="Default chat model"
+          options={@model_options}
+          class="cyber-text-input"
+        />
+        <.input
+          field={@controls_form[:provider]}
+          type="select"
+          label="Provider constraint"
+          options={@provider_options}
+          class="cyber-text-input"
+        />
+        <.input
+          field={@controls_form[:quota_usd]}
+          type="number"
+          label="Monthly quota (USD)"
+          min="0"
+          step="0.01"
+          class="cyber-text-input"
+        />
+        <button id="save-project-controls" type="submit" class="cyber-primary-button"><.icon
+          name="hero-command-line"
+          class="size-4"
+        /> Apply controls</button>
+      </.form>
+      <div class="project-pause-control">
+        <div>
+          <strong>{if @details.policy.enabled, do: "Pause project", else: "Resume project"}</strong><span>{if @details.policy.enabled,
+            do: "Reject new requests before provider dispatch",
+            else: "Allow requests through the routing policy"}</span>
+        </div>
+        <button
+          id="project-detail-toggle"
+          phx-click="toggle_project"
+          class={["cyber-switch", @details.policy.enabled && "is-on"]}
+          aria-label={if @details.policy.enabled, do: "Pause project", else: "Resume project"}
+          aria-pressed={@details.policy.enabled}
+        ><span></span></button>
+      </div>
+    </aside>
+
+    <section id="project-model-breakdown" class="cyber-panel project-breakdown">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Model breakdown</h2><p>Cost and workload by resolved model</p>
+        </div>
+      </header>
+      <div class="project-breakdown-columns model-breakdown-columns">
+        <span>Model</span><span>Provider</span><span>Calls</span><span>Tokens</span><span>Latency</span><span>Cost</span>
+      </div>
+      <div id="project-model-stream" phx-update="stream">
+        <div :if={@models_empty?} id="project-models-empty" class="tactical-empty">
+          <span>No model usage</span>
+        </div>
+        <article
+          :for={{id, model} <- @streams.models}
+          id={id}
+          class="project-breakdown-row model-breakdown-row"
+        >
+          <code>{model.name}</code><span>{String.upcase(model.providers)}</span><span>{model.calls}</span><span>{model.tokens}</span><span>{model.latency}</span><strong>{model.cost}</strong>
+        </article>
+      </div>
+    </section>
+
+    <section id="project-provider-breakdown" class="cyber-panel project-breakdown">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Provider channels</h2><p>Resolved route distribution</p>
+        </div>
+      </header>
+      <div id="project-provider-stream" phx-update="stream" class="project-channel-list">
+        <div :if={@providers_empty?} id="project-providers-empty" class="tactical-empty">
+          <span>No provider usage</span>
+        </div>
+        <article :for={{id, provider} <- @streams.providers} id={id} class="project-channel-row">
+          <div>
+            <i class="cyber-status-dot online"></i><strong>{String.upcase(provider.name)}</strong>
+          </div><span>{provider.calls} calls</span><span>{provider.tokens}</span><span>{provider.latency}</span><em>{provider.cost}</em>
+        </article>
+      </div>
+    </section>
+
+    <section id="project-tool-breakdown" class="cyber-panel project-breakdown project-tools">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>{if @tools_project?, do: "// Routed tool catalog", else: "// Tool attribution"}</h2><p>
+            {if @tools_project?,
+              do: "Usage by tool identity across this routing category",
+              else: "Clients and agents declaring tool identity"}
+          </p>
+        </div><span :if={@tools_project?} class="cyber-tag">TOOL ROUTES</span>
+      </header>
+      <div class="project-tool-columns">
+        <span>Tool</span><span>Resolved models</span><span>Providers</span><span>Latency</span><span>Calls</span><span>Tokens</span><span>Cost</span>
+      </div>
+      <div id="project-tool-stream" phx-update="stream" class="project-channel-list">
+        <div :if={@tools_empty?} id="project-tools-empty" class="tactical-empty">
+          <span>No tool headers attributed</span>
+        </div>
+        <article :for={{id, tool} <- @streams.tools} id={id} class="project-tool-row">
+          <div><strong>{String.upcase(tool.name)}</strong><small>{tool.category}</small></div><code>{tool.models}</code><span>{tool.providers}</span><span>{tool.latency}</span><span>{tool.calls}</span><span>{tool.tokens}</span><em>{tool.cost}</em>
+        </article>
+      </div>
+    </section>
+  </div>
+</Layouts.app>

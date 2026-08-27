@@ -21,6 +21,24 @@ defmodule HomeWeb.Router do
     plug :set_actor, :user
   end
 
+  pipeline :llm_proxy do
+    plug :accepts, ["json"]
+  end
+
+  scope "/v1", HomeWeb do
+    pipe_through :llm_proxy
+
+    get "/models", LLMProxyController, :models
+    post "/chat/completions", LLMProxyController, :chat_completions
+    post "/embeddings", LLMProxyController, :embeddings
+  end
+
+  scope "/", HomeWeb do
+    pipe_through :llm_proxy
+
+    get "/models", LLMProxyController, :models
+  end
+
   scope "/", HomeWeb do
     pipe_through :browser
 
@@ -35,6 +53,14 @@ defmodule HomeWeb.Router do
       #
       # If an authenticated user must *not* be present:
       # on_mount {HomeWeb.LiveUserAuth, :live_no_user}
+      live "/", OverviewLive, :index
+      live "/router", RouterLive, :index
+      live "/router/projects/:project", ProjectLive, :show
+      live "/crypto-keys", CryptoKeysLive, :index
+      live "/services", IntelLive, :services
+      live "/providers", IntelLive, :providers
+      live "/requests", IntelLive, :requests
+      live "/policies", IntelLive, :policies
     end
   end
 
@@ -51,7 +77,6 @@ defmodule HomeWeb.Router do
   scope "/", HomeWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
     auth_routes AuthController, Home.Accounts.User, path: "/auth"
 
     sign_out_route AuthController, "/sign-out",

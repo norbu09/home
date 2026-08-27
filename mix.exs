@@ -5,7 +5,7 @@ defmodule Home.MixProject do
     [
       app: :home,
       version: "0.1.0",
-      elixir: "~> 1.17",
+      elixir: "~> 1.19",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -42,6 +42,8 @@ defmodule Home.MixProject do
   defp deps do
     [
       {:bcrypt_elixir, "~> 3.0"},
+      {:decimal, "~> 3.0", override: true},
+      {:cloak, "~> 1.1"},
       {:picosat_elixir, "~> 0.2"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:open_api_spex, "~> 3.0"},
@@ -83,6 +85,7 @@ defmodule Home.MixProject do
        depth: 1},
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
+      {:agentic, path: "../agentic", runtime: false},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},

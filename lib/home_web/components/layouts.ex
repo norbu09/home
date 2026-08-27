@@ -31,46 +31,120 @@ defmodule HomeWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://phoenix.hexdocs.pm/scopes.html)"
 
+  attr :active_nav, :atom,
+    default: nil,
+    values: [nil, :overview, :router, :secrets, :services, :providers, :requests, :policies]
+
+  attr :secret_count, :integer, default: 0
+
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://phoenix.hexdocs.pm/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-    </header>
+    <div class="home-shell">
+      <input id="home-nav-toggle" type="checkbox" class="home-nav-toggle" />
+      <aside id="home-sidebar" class="home-sidebar">
+        <.link navigate={~p"/"} class="home-brand" aria-label="Home dashboard">
+          <span class="home-brand-mark">H</span>
+          <span><strong>HOME//CORE</strong><small>Local command v0.1</small></span>
+        </.link>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
+        <div class="home-system-line">
+          <span><i class="cyber-status-dot online"></i>systems nominal</span>
+          <span>SEC:LOCAL</span>
+        </div>
+
+        <nav class="home-nav" aria-label="Home applications">
+          <.nav_item
+            href={~p"/"}
+            icon="hero-command-line"
+            label="Overview"
+            active={@active_nav == :overview}
+          />
+          <div class="home-nav-label"><span>Applications</span></div>
+          <.nav_item
+            href={~p"/router"}
+            icon="hero-arrows-right-left"
+            label="LLM Router"
+            active={@active_nav == :router}
+            meta="01"
+          />
+          <.nav_item
+            href={~p"/crypto-keys"}
+            icon="hero-key"
+            label="Crypto Keys"
+            active={@active_nav == :secrets}
+            meta={integer_label(@secret_count)}
+          />
+          <.nav_item
+            href={~p"/services"}
+            icon="hero-signal"
+            label="Services"
+            active={@active_nav == :services}
+            meta="05"
+          />
+          <div class="home-nav-label"><span>Router Intel</span></div>
+          <.nav_item
+            href={~p"/providers"}
+            icon="hero-cube-transparent"
+            label="Providers"
+            active={@active_nav == :providers}
+          />
+          <.nav_item
+            href={~p"/requests"}
+            icon="hero-document-text"
+            label="Request Log"
+            active={@active_nav == :requests}
+          />
+          <.nav_item
+            href={~p"/policies"}
+            icon="hero-shield-check"
+            label="Policies"
+            active={@active_nav == :policies}
+          />
+        </nav>
+
+        <footer class="home-sidebar-footer">
+          <span class="home-ticker">SYS::ACTIVE</span>
+          <div><span>Gateway</span><strong>18ms</strong></div>
+          <div><span>localhost:4070</span><span>v0.1.0</span></div>
+        </footer>
+      </aside>
+
+      <div class="home-viewport">
+        <header class="home-mobile-header">
+          <label for="home-nav-toggle" class="cyber-icon-button" aria-label="Open navigation">
+            <.icon name="hero-bars-3" class="size-4" />
+          </label>
+          <span>HOME//CORE</span>
+          <i class="cyber-status-dot online"></i>
+        </header>
+        <main id="home-main" class="home-main">{render_slot(@inner_block)}</main>
       </div>
-    </main>
+      <label for="home-nav-toggle" class="home-nav-overlay" aria-label="Close navigation"></label>
+    </div>
 
     <.flash_group flash={@flash} />
     """
   end
+
+  attr :href, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :active, :boolean, default: false
+  attr :meta, :string, default: nil
+
+  defp nav_item(assigns) do
+    ~H"""
+    <.link navigate={@href} class={["home-nav-item", @active && "is-active"]}>
+      <.icon name={@icon} class="size-4" />
+      <span>{@label}</span>
+      <small :if={@meta}>{@meta}</small>
+    </.link>
+    """
+  end
+
+  defp integer_label(value), do: value |> Integer.to_string() |> String.pad_leading(2, "0")
 
   @doc """
   Shows the flash group with standard titles and content.

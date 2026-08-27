@@ -1,0 +1,145 @@
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  active_nav={:secrets}
+  secret_count={@secret_count}
+>
+  <header id="crypto-keys-header" class="router-page-header keys-page-header">
+    <div>
+      <span class="cyber-eyebrow">// Encrypted material</span>
+      <h1>Crypto Keys</h1>
+      <p>Local secret store · AES-256-GCM secured · values never exposed</p>
+    </div>
+    <button id="new-secret" class="cyber-primary-button keys-add-button" phx-click="new_secret">
+      <.icon name="hero-plus" class="size-4" />Store key
+    </button>
+  </header>
+
+  <section id="keys-metrics" class="keys-metrics" aria-label="Secret store status">
+    <div class="cyber-panel key-metric">
+      <span>Stored keys</span><strong>{@secret_count}</strong>
+    </div>
+    <div class="cyber-panel key-metric">
+      <span>Active</span><strong class="is-green">{@active_count}</strong>
+    </div>
+    <div class="cyber-panel key-metric">
+      <span>Services</span><strong class="is-cyan">{@service_count}</strong>
+    </div>
+    <div class="cyber-panel key-metric">
+      <span>Cipher</span><strong class="key-cipher">AES.GCM.V1</strong>
+    </div>
+  </section>
+
+  <section :if={@show_form} id="secret-form-panel" class="cyber-panel secret-form-panel">
+    <header>
+      <div>
+        <span class="cyber-eyebrow">// Key intake</span><h2>
+          {if @editing_secret, do: "Update crypto key", else: "Store new crypto key"}
+        </h2>
+      </div>
+      <button
+        id="cancel-secret"
+        class="cyber-icon-button"
+        phx-click="cancel_secret"
+        title="Cancel"
+        aria-label="Cancel key form"
+      ><.icon name="hero-x-mark" class="size-4" /></button>
+    </header>
+    <.form for={@secret_form} id="secret-form" phx-submit="save_secret" class="secret-form-grid">
+      <.input
+        field={@secret_form[:service]}
+        label="Service namespace"
+        placeholder="llm"
+        readonly={@editing_secret != nil}
+        class="cyber-text-input"
+      />
+      <.input
+        field={@secret_form[:key]}
+        label="Key identifier"
+        placeholder="OPENAI_API_KEY"
+        readonly={@editing_secret != nil}
+        class="cyber-text-input"
+      />
+      <.input
+        field={@secret_form[:value]}
+        type="password"
+        label="Secret value"
+        placeholder={
+          if @editing_secret, do: "Enter replacement value", else: "Encrypted on submit"
+        }
+        class="cyber-text-input"
+      />
+      <.input
+        field={@secret_form[:description]}
+        label="Description"
+        placeholder="Optional operator note"
+        class="cyber-text-input"
+      />
+      <button id="save-secret" type="submit" class="cyber-primary-button secret-save-button"><.icon
+        name="hero-lock-closed"
+        class="size-4"
+      />Encrypt and store</button>
+    </.form>
+  </section>
+
+  <section id="stored-keys" class="cyber-panel keys-table-panel">
+    <header class="cyber-panel-header">
+      <div>
+        <h2>// Stored key registry</h2><p>Metadata only · plaintext access prohibited</p>
+      </div>
+      <span class="cyber-tag">{@active_count} active</span>
+    </header>
+    <div class="keys-table-columns" aria-hidden="true">
+      <span>Service</span><span>Key identifier</span><span>Description</span><span>Updated</span><span>Status</span><span>Actions</span>
+    </div>
+    <div id="secret-rows" phx-update="stream">
+      <div :if={@secrets_empty?} id="keys-empty" class="keys-empty">
+        <.icon name="hero-key" class="size-6" /><span>No encrypted keys stored</span>
+      </div>
+      <article
+        :for={{id, secret} <- @streams.secrets}
+        id={id}
+        class={["secret-row", !secret.is_active && "is-disabled"]}
+        data-state={if secret.is_active, do: "active", else: "inactive"}
+      >
+        <strong class="secret-service">{String.upcase(secret.service)}</strong>
+        <code>{secret.key}</code>
+        <span class="secret-description">{secret.description || "---"}</span>
+        <time datetime={secret.updated_at}>{timestamp(secret.updated_at)}</time>
+        <span class={["secret-status", secret.is_active && "is-active"]}><i class={[
+          "cyber-status-dot",
+          secret.is_active && "online"
+        ]}></i>{if secret.is_active, do: "ACTIVE", else: "INACTIVE"}</span>
+        <div class="secret-actions">
+          <button
+            id={"edit-secret-#{secret.id}"}
+            class="cyber-icon-button"
+            phx-click="edit_secret"
+            phx-value-id={secret.id}
+            title="Replace key"
+            aria-label={"Replace #{secret.key}"}
+          ><.icon name="hero-pencil-square" class="size-4" /></button>
+          <button
+            id={"toggle-secret-#{secret.id}"}
+            class={["cyber-switch", secret.is_active && "is-on"]}
+            phx-click="toggle_secret"
+            phx-value-id={secret.id}
+            aria-label={
+              if secret.is_active, do: "Disable #{secret.key}", else: "Enable #{secret.key}"
+            }
+            aria-pressed={secret.is_active}
+          ><span></span></button>
+          <button
+            id={"delete-secret-#{secret.id}"}
+            class="cyber-icon-button is-danger"
+            phx-click="delete_secret"
+            phx-value-id={secret.id}
+            data-confirm="Destroy this encrypted key?"
+            title="Destroy key"
+            aria-label={"Destroy #{secret.key}"}
+          ><.icon name="hero-trash" class="size-4" /></button>
+        </div>
+      </article>
+    </div>
+  </section>
+</Layouts.app>
