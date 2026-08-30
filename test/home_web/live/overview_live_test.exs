@@ -7,6 +7,7 @@ defmodule HomeWeb.OverviewLiveTest do
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#overview-vitals")
+    assert has_element?(view, "#home-sidebar img[src='/images/home-core-mark.png']")
     assert has_element?(view, "#overview-local-clock[data-timezone='Europe/Lisbon'] time")
     assert has_element?(view, "#overview-local-clock[phx-hook='LocalClock']")
     assert has_element?(view, "#current-focus")

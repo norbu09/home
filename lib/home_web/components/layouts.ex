@@ -46,7 +46,7 @@ defmodule HomeWeb.Layouts do
       <aside id="home-sidebar" class="home-sidebar">
         <.app_header
           href={~p"/"}
-          mark="H"
+          image_src={~p"/images/home-core-mark.png"}
           title="HOME//CORE"
           subtitle="Local command v0.1"
           aria-label="Home dashboard"
