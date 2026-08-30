@@ -4,6 +4,8 @@ config :bcrypt_elixir, log_rounds: 1
 config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
 
 config :home, :llm_model_route_refresher, enabled: false
+config :home, :cognee_insights, enabled: false
+config :home, :git_activity, root: "/tmp/home-missing-git-root"
 
 # Configure your database
 #

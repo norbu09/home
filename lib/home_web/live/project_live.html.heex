@@ -6,10 +6,12 @@
 >
   <header id="project-detail-header" class="router-page-header project-detail-header">
     <div class="project-title-block">
-      <.link navigate={~p"/router"} class="project-back-link"><.icon
-        name="hero-arrow-left"
-        class="size-3"
-      /> Router matrix</.link>
+      <nav class="project-back-nav" aria-label="Project breadcrumbs">
+        <.link navigate={~p"/"} class="project-back-link"><.icon
+          name="hero-arrow-left"
+          class="size-3"
+        /> Overview</.link><span>/</span><.link navigate={~p"/router"} class="project-back-link">Router matrix</.link>
+      </nav>
       <span class="router-kicker">// Project operations node</span>
       <h1>{String.upcase(@details.policy.name)}</h1>
       <p>
@@ -68,6 +70,31 @@
   </section>
 
   <div class="project-detail-grid">
+    <section id="project-intelligence" class="cyber-panel project-intelligence">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Project intelligence</h2><p>Router, repository, and memory signals</p>
+        </div><span class="cyber-tag">{@signal_count}/3 CHANNELS</span>
+      </header>
+      <div class="project-signal-grid">
+        <div class="project-signal-channel">
+          <span>MODEL ROUTER</span><strong>{@month_calls} calls</strong><p>
+            {@month_tokens} tokens · {relative_timestamp(@details.last_seen_at)}
+          </p>
+        </div>
+        <div class="project-signal-channel">
+          <span>GIT ACTIVITY</span><strong>{@git_commit_count} commits</strong><p>
+            7-day window · {@git_latest}
+          </p>
+        </div>
+        <div class="project-signal-channel">
+          <span>COGNEE MEMORY</span><strong>{@memory_total} records</strong><p>
+            +{@memory_day} in 24h · +{@memory_week} in 7d · {@memory_latest}
+          </p>
+        </div>
+      </div>
+    </section>
+
     <section id="project-usage-timeline" class="cyber-panel project-timeline">
       <header class="cyber-panel-header">
         <div>
@@ -138,6 +165,74 @@
         ><span></span></button>
       </div>
     </aside>
+
+    <section
+      id="project-commit-history"
+      class="cyber-panel project-breakdown project-activity-panel"
+    >
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Recent commits</h2><p>Latest changes in the primary repository</p>
+        </div><span class="cyber-tag">7 DAYS</span>
+      </header>
+      <div id="project-commit-stream" phx-update="stream" class="project-commit-list">
+        <div :if={@commits_empty?} id="project-commits-empty" class="tactical-empty">
+          <.icon name="hero-code-bracket-square" class="size-5" /><span>No recent repository commits</span>
+        </div>
+        <a
+          :for={{id, commit} <- @streams.project_commits}
+          id={id}
+          href={commit.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="project-commit-row"
+        >
+          <code>{commit.short_sha}</code><div>
+            <strong>{commit.subject}</strong><span>{commit.author}</span>
+          </div><time>{relative_timestamp(commit.committed_at)}</time><.icon
+            name="hero-arrow-top-right-on-square"
+            class="size-3"
+          />
+        </a>
+      </div>
+    </section>
+
+    <section
+      id="project-memory-activity"
+      class="cyber-panel project-breakdown project-activity-panel"
+    >
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Cognee knowledge</h2><p>Matching datasets and ingestion activity</p>
+        </div><a
+          href={@cognee_graph_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cyber-icon-button"
+          title="Open Cognee knowledge graph"
+          aria-label="Open Cognee knowledge graph"
+        ><.icon name="hero-share" class="size-3" /></a>
+      </header>
+      <div id="project-memory-stream" phx-update="stream" class="project-memory-list">
+        <div :if={@memory_empty?} id="project-memory-empty" class="tactical-empty">
+          <.icon name="hero-circle-stack" class="size-5" /><span>No matching Cognee dataset</span>
+        </div>
+        <a
+          :for={{id, area} <- @streams.memory_areas}
+          id={id}
+          href={area.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="project-memory-row"
+        >
+          <div><strong>{String.upcase(area.name)}</strong><span>{area.latest}</span></div><div>
+            <strong>{area.records}</strong><span>RECORDS</span>
+          </div><div><strong>+{area.day}</strong><span>24 HOURS</span></div><div>
+            <strong>+{area.week}</strong><span>7 DAYS</span>
+          </div><.icon name="hero-arrow-top-right-on-square" class="size-3" />
+        </a>
+      </div>
+    </section>
 
     <section id="project-model-breakdown" class="cyber-panel project-breakdown">
       <header class="cyber-panel-header">

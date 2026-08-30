@@ -23,13 +23,17 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/home"
+import {hooks as kfosUiHooks} from "../../deps/kfos_ui/priv/js/hooks"
+import {initTheme} from "../../deps/kfos_ui/priv/js/theme"
 import topbar from "../vendor/topbar"
+
+initTheme()
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, ...kfosUiHooks},
 })
 
 // Show progress bar on live navigation and form submits
@@ -80,4 +84,3 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
-

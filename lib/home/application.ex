@@ -16,6 +16,7 @@ defmodule Home.Application do
       Home.LLMProxy.ProviderHealth,
       Home.LLMProxy.UsageTracker,
       Home.LLMProxy.ModelRouteRefresher,
+      Home.Cognee.InsightTracker,
       # Start a worker by calling: Home.Worker.start_link(arg)
       # {Home.Worker, arg},
       # Start to serve requests, typically the last entry

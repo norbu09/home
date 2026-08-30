@@ -2,6 +2,8 @@ defmodule HomeWeb.OverviewLive do
   @moduledoc "Personal tactical status overview."
   use HomeWeb, :live_view
 
+  alias Home.{ActivityFocus, GitActivity}
+  alias Home.Cognee.InsightTracker
   alias Home.LLMProxy.UsageTracker
   alias Home.Secrets.Store
   alias Home.Tactical
@@ -10,29 +12,30 @@ defmodule HomeWeb.OverviewLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket), do: Phoenix.PubSub.subscribe(Home.PubSub, "llm_usage")
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Home.PubSub, "llm_usage")
+      Phoenix.PubSub.subscribe(Home.PubSub, "cognee_insights")
+    end
 
     {:ok,
      socket
      |> assign(:page_title, "Overview")
      |> assign_new(:current_scope, fn -> nil end)
      |> assign(:goal_form, goal_form())
-     |> assign(:meeting_form, meeting_form())
      |> assign(:show_goal_form, false)
-     |> assign(:show_meeting_form, false)
      |> load_overview()}
   end
 
   @impl true
   def handle_info(:llm_usage_updated, socket), do: {:noreply, load_focus(socket)}
 
+  def handle_info(:cognee_insights_updated, socket) do
+    {:noreply, socket |> load_insights() |> load_focus()}
+  end
+
   @impl true
   def handle_event("toggle_form", %{"kind" => "goal"}, socket) do
     {:noreply, assign(socket, :show_goal_form, !socket.assigns.show_goal_form)}
-  end
-
-  def handle_event("toggle_form", %{"kind" => "meeting"}, socket) do
-    {:noreply, assign(socket, :show_meeting_form, !socket.assigns.show_meeting_form)}
   end
 
   def handle_event("save_goal", %{"goal" => params}, socket) do
@@ -51,28 +54,6 @@ defmodule HomeWeb.OverviewLive do
     end
   end
 
-  def handle_event("save_meeting", %{"meeting" => params}, socket) do
-    attrs =
-      Map.merge(params, %{
-        "kind" => "meeting",
-        "status" => "active",
-        "source" => "manual",
-        "priority" => 2
-      })
-
-    case Tactical.create_item(attrs) do
-      {:ok, _item} ->
-        {:noreply,
-         socket
-         |> assign(:meeting_form, meeting_form())
-         |> assign(:show_meeting_form, false)
-         |> load_tactical_items()}
-
-      {:error, changeset} ->
-        {:noreply, assign(socket, :meeting_form, to_form(changeset, as: :meeting))}
-    end
-  end
-
   def handle_event("toggle_goal", %{"id" => id}, socket) do
     _ = Tactical.toggle_goal(id)
     {:noreply, load_tactical_items(socket)}
@@ -83,31 +64,29 @@ defmodule HomeWeb.OverviewLive do
     {:noreply, load_tactical_items(socket)}
   end
 
+  def handle_event("refresh_cognee_insights", _params, socket) do
+    InsightTracker.refresh()
+    {:noreply, assign(socket, :cognee_status, :syncing)}
+  end
+
+  def handle_event("refresh_git_activity", _params, socket) do
+    {:noreply, socket |> load_git_activity() |> load_focus()}
+  end
+
   defp load_overview(socket) do
     socket
     |> assign(:secret_count, length(Store.list_all()))
     |> assign(:today, Date.utc_today())
+    |> load_git_activity()
     |> load_focus()
     |> load_tactical_items()
   end
 
   defp load_focus(socket) do
     snapshot = UsageTracker.snapshot()
+    cognee = InsightTracker.snapshot()
 
-    focuses =
-      snapshot.projects
-      |> Enum.filter(&(&1.calls > 0))
-      |> Enum.take(4)
-      |> Enum.map(fn project ->
-        %{
-          id: project.id,
-          name: project.name,
-          calls: project.calls,
-          tokens: project.input_tokens + project.output_tokens,
-          cost: project.cost_usd,
-          last_seen_at: project.last_seen_at
-        }
-      end)
+    focuses = ActivityFocus.build(snapshot.projects, socket.assigns.git_projects, cognee.areas)
 
     socket
     |> assign(:snapshot, snapshot)
@@ -121,25 +100,37 @@ defmodule HomeWeb.OverviewLive do
 
   defp load_tactical_items(socket) do
     goals = Tactical.list_goals()
-    meetings = Tactical.list_upcoming_meetings()
-    insights = Tactical.list_insights()
 
     socket
     |> assign(:goals_empty?, goals == [])
-    |> assign(:meetings_empty?, meetings == [])
-    |> assign(:insights_empty?, insights == [])
     |> assign(:goal_progress, goal_progress(goals))
     |> stream(:goals, goals, reset: true)
-    |> stream(:meetings, meetings, reset: true)
+    |> load_insights()
+  end
+
+  defp load_git_activity(socket) do
+    projects = GitActivity.recent()
+
+    socket
+    |> assign(:git_projects, projects)
+    |> assign(:git_projects_empty?, projects == [])
+    |> assign(:git_commit_count, Enum.sum(Enum.map(projects, & &1.commit_count)))
+    |> stream(:git_projects_stream, projects, reset: true)
+  end
+
+  defp load_insights(socket) do
+    cognee = InsightTracker.snapshot()
+    insights = cognee.insights ++ Tactical.list_insights()
+
+    socket
+    |> assign(:insights_empty?, insights == [])
+    |> assign(:cognee_status, cognee.status)
+    |> assign(:cognee_dataset_count, cognee.dataset_count)
     |> stream(:insights, insights, reset: true)
   end
 
   defp goal_form do
     to_form(%{"title" => "", "notes" => "", "due_on" => "", "priority" => 2}, as: :goal)
-  end
-
-  defp meeting_form do
-    to_form(%{"title" => "", "notes" => "", "starts_at" => ""}, as: :meeting)
   end
 
   defp goal_progress([]), do: 0
@@ -156,10 +147,42 @@ defmodule HomeWeb.OverviewLive do
 
   defp compact(value), do: Integer.to_string(value)
   defp money(value), do: "$" <> :erlang.float_to_binary(value * 1.0, decimals: 2)
-  defp timestamp(nil), do: "NO RECENT ACTIVITY"
-  defp timestamp(value), do: Calendar.strftime(value, "%H:%MZ")
-  defp meeting_time(nil), do: "TIME PENDING"
-  defp meeting_time(value), do: Calendar.strftime(value, "%a %d %b · %H:%MZ")
   defp due_date(nil), do: "NO DEADLINE"
   defp due_date(value), do: Calendar.strftime(value, "%d %b")
+  defp insight_badge(%{source: "cognee", signal: signal}), do: String.upcase(signal)
+  defp insight_badge(insight), do: "P#{insight.priority}"
+
+  defp cognee_status(:ready, count), do: "#{count} AREAS SYNCED"
+  defp cognee_status(:syncing, _count), do: "SCANNING"
+  defp cognee_status(:unavailable, _count), do: "COGNEE OFFLINE"
+  defp cognee_status(_, _count), do: "AWAITING SIGNAL"
+
+  defp focus_summary(focus) do
+    [
+      focus.router_calls > 0 && count_label(focus.router_calls, "LLM call"),
+      focus.commits > 0 && count_label(focus.commits, "commit"),
+      focus.memory_activity > 0 && count_label(focus.memory_activity, "memory update")
+    ]
+    |> Enum.filter(&is_binary/1)
+    |> Enum.join(" · ")
+  end
+
+  defp count_label(1, label), do: "1 #{label}"
+  defp count_label(count, label), do: "#{count} #{label}s"
+
+  defp signal_label(1), do: "1 SIGNAL"
+  defp signal_label(count), do: "#{count} SIGNALS"
+
+  defp relative_timestamp(nil), do: "NO TIMESTAMP"
+
+  defp relative_timestamp(datetime) do
+    seconds = max(DateTime.diff(DateTime.utc_now(), datetime, :second), 0)
+
+    cond do
+      seconds < 60 -> "NOW"
+      seconds < 3_600 -> "#{div(seconds, 60)}M AGO"
+      seconds < 86_400 -> "#{div(seconds, 3_600)}H AGO"
+      true -> "#{div(seconds, 86_400)}D AGO"
+    end
+  end
 end

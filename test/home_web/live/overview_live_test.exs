@@ -7,10 +7,14 @@ defmodule HomeWeb.OverviewLiveTest do
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#overview-vitals")
+    assert has_element?(view, "#overview-local-clock[data-timezone='Europe/Lisbon'] time")
+    assert has_element?(view, "#overview-local-clock[phx-hook='LocalClock']")
     assert has_element?(view, "#current-focus")
-    assert has_element?(view, "#upcoming-meetings")
+    assert has_element?(view, "#commit-history")
+    assert has_element?(view, "#refresh-git-activity")
     assert has_element?(view, "#personal-goals")
     assert has_element?(view, "#cognee-insights")
+    assert has_element?(view, "#refresh-cognee-insights")
   end
 
   test "creates and completes a personal goal", %{conn: conn} do
@@ -29,16 +33,20 @@ defmodule HomeWeb.OverviewLiveTest do
     assert Home.Repo.get!(Home.Tactical.Item, goal.id).status == "completed"
   end
 
-  test "adds an upcoming meeting", %{conn: conn} do
+  test "links active workstreams to project intelligence", %{conn: conn} do
+    Home.LLMProxy.UsageTracker.reset()
+
+    :ok =
+      Home.LLMProxy.UsageTracker.record(%{
+        project: "ops_center",
+        provider: :openrouter,
+        model: "z-ai/glm-5.2",
+        input_tokens: 20,
+        output_tokens: 5,
+        latency_ms: 100
+      })
+
     {:ok, view, _html} = live(conn, ~p"/")
-    view |> element("#add-meeting") |> render_click()
-
-    view
-    |> form("#meeting-form",
-      meeting: %{title: "Weekly review", starts_at: "2027-01-02T10:00", notes: "Studio"}
-    )
-    |> render_submit()
-
-    assert has_element?(view, "#meeting-stream article")
+    assert has_element?(view, "#focus-stream a[href='/router/projects/ops_center']")
   end
 end

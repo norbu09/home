@@ -85,7 +85,10 @@ defmodule HomeWeb do
       # HTML escaping functionality
       import Phoenix.HTML
       # Core UI components
-      import HomeWeb.CoreComponents
+      import KfosUi.CoreComponents
+      import KfosUi.CyberComponents
+      import KfosUi.ClockComponents
+      import KfosUi.LayoutComponents
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

@@ -2,6 +2,8 @@ defmodule HomeWeb.ProjectLive do
   @moduledoc "Per-project LLM usage and routing controls."
   use HomeWeb, :live_view
 
+  alias Home.Cognee.InsightTracker
+  alias Home.GitActivity
   alias Home.LLMProxy.{ProviderCatalog, UsageTracker}
   alias Home.Secrets.Store
 
@@ -9,7 +11,10 @@ defmodule HomeWeb.ProjectLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket), do: Phoenix.PubSub.subscribe(Home.PubSub, "llm_usage")
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Home.PubSub, "llm_usage")
+      Phoenix.PubSub.subscribe(Home.PubSub, "cognee_insights")
+    end
 
     {:ok,
      socket
@@ -26,6 +31,10 @@ defmodule HomeWeb.ProjectLive do
 
   @impl true
   def handle_info(:llm_usage_updated, socket) do
+    {:noreply, load_project(socket, socket.assigns.project_id)}
+  end
+
+  def handle_info(:cognee_insights_updated, socket) do
     {:noreply, load_project(socket, socket.assigns.project_id)}
   end
 
@@ -74,6 +83,19 @@ defmodule HomeWeb.ProjectLive do
     tools = Enum.map(details.tools, &tool_row/1)
     daily = daily_rows(details.daily)
     total_tokens = details.month.input_tokens + details.month.output_tokens
+    git_project = Enum.find(GitActivity.recent(), &(&1.id == normalize_project(project)))
+    commits = if(git_project, do: git_project.commits, else: [])
+
+    memory_areas =
+      InsightTracker.snapshot().areas
+      |> Enum.filter(&(memory_project_id(&1.dataset_name) == normalize_project(project)))
+
+    memory_rows = Enum.map(memory_areas, &memory_row/1)
+    memory_total = Enum.sum(Enum.map(memory_areas, & &1.item_count))
+    memory_day = Enum.sum(Enum.map(memory_areas, & &1.recent_day_count))
+    memory_week = Enum.sum(Enum.map(memory_areas, & &1.recent_week_count))
+    git_commit_count = length(commits)
+    signal_count = Enum.count([details.month.calls, git_commit_count, memory_total], &(&1 > 0))
 
     socket
     |> assign(:page_title, "#{details.policy.name} · Project")
@@ -86,6 +108,16 @@ defmodule HomeWeb.ProjectLive do
     |> assign(:month_tokens, compact(total_tokens))
     |> assign(:average_cost, money(safe_average(details.month.cost_usd, details.month.calls)))
     |> assign(:quota_percent, percent(details.month.cost_usd, details.policy.quota_usd))
+    |> assign(:signal_count, signal_count)
+    |> assign(:git_commit_count, git_commit_count)
+    |> assign(:git_latest, relative_timestamp(git_project && git_project.latest_at))
+    |> assign(:memory_total, compact(memory_total))
+    |> assign(:memory_day, memory_day)
+    |> assign(:memory_week, memory_week)
+    |> assign(:memory_latest, relative_timestamp(latest_memory_activity(memory_areas)))
+    |> assign(:cognee_graph_url, cognee_ui_url("/knowledge-graph"))
+    |> assign(:commits_empty?, commits == [])
+    |> assign(:memory_empty?, memory_rows == [])
     |> assign(:models_empty?, models == [])
     |> assign(:providers_empty?, providers == [])
     |> assign(:tools_empty?, tools == [])
@@ -94,6 +126,8 @@ defmodule HomeWeb.ProjectLive do
     |> stream(:providers, providers, reset: true)
     |> stream(:tools, tools, reset: true)
     |> stream(:daily, daily, reset: true)
+    |> stream(:project_commits, commits, reset: true)
+    |> stream(:memory_areas, memory_rows, reset: true)
   end
 
   defp controls_form(policy) do
@@ -163,6 +197,28 @@ defmodule HomeWeb.ProjectLive do
     }
   end
 
+  defp memory_row(area) do
+    %{
+      id: area.dataset_id,
+      name: area.dataset_name |> String.replace_prefix("ocp-", "") |> String.replace("-", " "),
+      records: compact(area.item_count),
+      day: area.recent_day_count,
+      week: area.recent_week_count,
+      latest: relative_timestamp(area.latest_activity_at),
+      url: cognee_ui_url("/datasets/#{area.dataset_id}")
+    }
+  end
+
+  defp cognee_ui_url(path) do
+    endpoint =
+      :home
+      |> Application.get_env(:cognee_insights, [])
+      |> Keyword.get(:ui_endpoint, "http://localhost:3000")
+      |> String.trim_trailing("/")
+
+    endpoint <> path
+  end
+
   defp daily_rows([]), do: []
 
   defp daily_rows(rows) do
@@ -208,4 +264,36 @@ defmodule HomeWeb.ProjectLive do
 
   defp compact(value), do: Integer.to_string(value)
   defp money(value), do: "$" <> :erlang.float_to_binary(value * 1.0, decimals: 4)
+
+  defp normalize_project(name) do
+    name
+    |> to_string()
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/, "_")
+    |> String.trim("_")
+  end
+
+  defp memory_project_id(name) do
+    name |> String.replace_prefix("ocp-", "") |> normalize_project()
+  end
+
+  defp latest_memory_activity(areas) do
+    areas
+    |> Enum.map(& &1.latest_activity_at)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.max(DateTime, fn -> nil end)
+  end
+
+  defp relative_timestamp(nil), do: "NO RECENT SIGNAL"
+
+  defp relative_timestamp(datetime) do
+    seconds = max(DateTime.diff(DateTime.utc_now(), datetime, :second), 0)
+
+    cond do
+      seconds < 60 -> "NOW"
+      seconds < 3_600 -> "#{div(seconds, 60)}M AGO"
+      seconds < 86_400 -> "#{div(seconds, 3_600)}H AGO"
+      true -> "#{div(seconds, 86_400)}D AGO"
+    end
+  end
 end

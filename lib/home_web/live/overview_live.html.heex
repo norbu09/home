@@ -4,16 +4,15 @@
   active_nav={:overview}
   secret_count={@secret_count}
 >
-  <header id="overview-header" class="router-page-header tactical-header">
-    <div>
-      <span class="router-kicker">// Personal operations surface</span>
-      <h1>TACTICAL OVERVIEW</h1>
-      <p>{Calendar.strftime(@today, "%A · %d %B %Y")} // local command state</p>
-    </div>
-    <div class="overview-clock">
-      <span>UTC STATUS</span><strong>{Calendar.strftime(@snapshot.updated_at, "%H:%M")}</strong>
-    </div>
-  </header>
+  <.page_header
+    id="overview-header"
+    title="Tactical Overview"
+    subtitle={"#{Calendar.strftime(@today, "%A · %d %B %Y")} // local command state"}
+  >
+    <:actions>
+      <.local_clock id="overview-local-clock" />
+    </:actions>
+  </.page_header>
 
   <section id="overview-vitals" class="router-metrics overview-vitals" aria-label="Current status">
     <.metric
@@ -54,79 +53,74 @@
     <section id="current-focus" class="cyber-panel tactical-panel tactical-focus">
       <header class="cyber-panel-header">
         <div>
-          <h2>// Current focus</h2><p>Inferred from work routed through local models</p>
+          <h2>// Current focus</h2><p>Combined model, commit, and memory activity</p>
         </div>
         <span class="cyber-tag">LIVE SIGNAL</span>
       </header>
       <div id="focus-stream" phx-update="stream" class="focus-list">
         <div :if={@focuses_empty?} id="focus-empty" class="tactical-empty">
-          <.icon name="hero-signal-slash" class="size-5" /><span>No attributed model work this month</span>
+          <.icon name="hero-signal-slash" class="size-5" /><span>No recent project signals</span>
         </div>
-        <article :for={{id, focus} <- @streams.focuses} id={id} class="focus-row">
+        <.link
+          :for={{id, focus} <- @streams.focuses}
+          id={id}
+          navigate={~p"/router/projects/#{focus.id}"}
+          class="focus-row focus-project-link"
+        >
           <div class="focus-rank"></div>
           <div>
-            <strong>{String.upcase(focus.name)}</strong><span>{focus.calls} routed calls · {compact(
-              focus.tokens
-            )} tokens</span>
+            <strong>{String.upcase(focus.name)}</strong><span>{focus_summary(focus)}</span>
           </div>
           <div>
-            <strong>{money(focus.cost)}</strong><span>{timestamp(focus.last_seen_at)}</span>
+            <strong>{signal_label(focus.signal_count)}</strong><span>{relative_timestamp(
+              focus.last_seen_at
+            )}</span>
           </div>
-        </article>
+        </.link>
       </div>
     </section>
 
-    <section id="upcoming-meetings" class="cyber-panel tactical-panel">
+    <section id="commit-history" class="cyber-panel tactical-panel commit-history-panel">
       <header class="cyber-panel-header">
         <div>
-          <h2>// Upcoming meetings</h2><p>Next commitments in UTC</p>
+          <h2>// Commit history</h2><p>{@git_commit_count} recent changes grouped by project</p>
         </div>
         <button
-          id="add-meeting"
+          id="refresh-git-activity"
           class="cyber-icon-button"
-          phx-click="toggle_form"
-          phx-value-kind="meeting"
-          title="Add meeting"
-          aria-label="Add meeting"
-        ><.icon name="hero-plus" class="size-4" /></button>
+          phx-click="refresh_git_activity"
+          title="Refresh commit history"
+          aria-label="Refresh commit history"
+        ><.icon name="hero-arrow-path" class="size-3" /></button>
       </header>
-      <.form
-        :if={@show_meeting_form}
-        for={@meeting_form}
-        id="meeting-form"
-        phx-submit="save_meeting"
-        class="tactical-inline-form"
-      >
-        <.input
-          field={@meeting_form[:title]}
-          type="text"
-          placeholder="Meeting title"
-          class="cyber-text-input"
-        />
-        <.input field={@meeting_form[:starts_at]} type="datetime-local" class="cyber-text-input" />
-        <.input
-          field={@meeting_form[:notes]}
-          type="text"
-          placeholder="Context or location"
-          class="cyber-text-input"
-        />
-        <button type="submit" class="cyber-primary-button">Schedule</button>
-      </.form>
-      <div id="meeting-stream" phx-update="stream" class="tactical-item-list">
-        <div :if={@meetings_empty?} id="meetings-empty" class="tactical-empty">
-          <.icon name="hero-calendar-days" class="size-5" /><span>No upcoming meetings recorded</span>
+      <div id="git-project-stream" phx-update="stream" class="git-project-list">
+        <div :if={@git_projects_empty?} id="git-projects-empty" class="tactical-empty">
+          <.icon name="hero-code-bracket-square" class="size-5" /><span>No commits in the current window</span>
         </div>
-        <article :for={{id, meeting} <- @streams.meetings} id={id} class="tactical-item-row">
-          <time>{meeting_time(meeting.starts_at)}</time><strong>{meeting.title}</strong><span>{meeting.notes ||
-            "No context attached"}</span>
-          <button
-            id={"dismiss-meeting-#{meeting.id}"}
-            phx-click="dismiss_item"
-            phx-value-id={meeting.id}
-            class="cyber-icon-button"
-            title="Dismiss meeting"
-            aria-label={"Dismiss #{meeting.title}"}
-          ><.icon name="hero-x-mark" class="size-3" /></button>
+        <article
+          :for={{id, project} <- @streams.git_projects_stream}
+          id={id}
+          class="git-project-group"
+        >
+          <header>
+            <.link navigate={~p"/router/projects/#{project.id}"} class="git-project-link">{String.upcase(
+              project.name
+            )}</.link><span>{project.commit_count} COMMITS</span>
+          </header>
+          <div class="git-commit-list">
+            <a
+              :for={commit <- project.commits}
+              id={commit.id}
+              href={commit.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="git-commit-row"
+            >
+              <code>{commit.short_sha}</code><span>{commit.subject}</span><time>{relative_timestamp(
+                commit.committed_at
+              )}</time>
+            </a>
+          </div>
         </article>
       </div>
     </section>
@@ -206,16 +200,26 @@
         <div>
           <h2>// Cognee insights</h2><p>Memory signals promoted into tactical context</p>
         </div>
-        <span class={["cyber-status-label", @insights_empty? && "is-idle"]}>{if @insights_empty?,
-          do: "AWAITING SIGNAL",
-          else: "SYNCED"}</span>
+        <div class="insight-header-actions">
+          <span class={["cyber-status-label", @cognee_status != :ready && "is-idle"]}>{cognee_status(
+            @cognee_status,
+            @cognee_dataset_count
+          )}</span>
+          <button
+            id="refresh-cognee-insights"
+            class="cyber-icon-button"
+            phx-click="refresh_cognee_insights"
+            title="Refresh Cognee insights"
+            aria-label="Refresh Cognee insights"
+          ><.icon name="hero-arrow-path" class="size-3" /></button>
+        </div>
       </header>
       <div id="insight-stream" phx-update="stream" class="insight-list">
         <div :if={@insights_empty?} id="insights-empty" class="tactical-empty insight-empty">
-          <.icon name="hero-circle-stack" class="size-5" /><strong>Insight channel ready</strong><span>Cognee can write records with source=cognee into the tactical item store.</span>
+          <.icon name="hero-circle-stack" class="size-5" /><strong>Insight channel ready</strong><span>Cognee dataset activity will be summarized after the next scan.</span>
         </div>
         <article :for={{id, insight} <- @streams.insights} id={id} class="insight-row">
-          <span>P{insight.priority}</span><div>
+          <span>{insight_badge(insight)}</span><div>
             <strong>{insight.title}</strong><p>{insight.notes}</p>
           </div>
         </article>

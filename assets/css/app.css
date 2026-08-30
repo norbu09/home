@@ -3,10 +3,12 @@
 
 @import "tailwindcss" source(none);
 @source "../../deps/ash_authentication_phoenix";
+@source "../../deps/kfos_ui/lib";
 @import "phoenix-colocated/home/colocated.css";
 @source "../css";
 @source "../js";
 @source "../../lib/home_web";
+@import "../../deps/kfos_ui/priv/css/kfos_ui.css";
 /* Required for Tailwind to automatically pick up changes in colocated CSS files in dev */
 @source "../../_build/dev/phoenix-colocated/home/*/";
 
@@ -62,29 +64,29 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
+  --color-base-100: oklch(98% 0.018 105);
+  --color-base-200: oklch(94% 0.03 102);
+  --color-base-300: oklch(89% 0.045 98);
+  --color-base-content: oklch(21% 0.035 175);
+  --color-primary: oklch(55% 0.18 205);
+  --color-primary-content: oklch(98% 0.018 105);
+  --color-secondary: oklch(67% 0.17 82);
+  --color-secondary-content: oklch(18% 0.04 80);
+  --color-accent: oklch(57% 0.24 333);
+  --color-accent-content: oklch(98% 0.018 105);
+  --color-neutral: oklch(28% 0.04 178);
+  --color-neutral-content: oklch(96% 0.015 110);
+  --color-info: oklch(58% 0.18 230);
+  --color-info-content: oklch(98% 0.018 105);
+  --color-success: oklch(58% 0.18 155);
+  --color-success-content: oklch(98% 0.018 105);
+  --color-warning: oklch(70% 0.18 78);
+  --color-warning-content: oklch(20% 0.04 78);
+  --color-error: oklch(58% 0.24 24);
+  --color-error-content: oklch(98% 0.018 105);
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.25rem;
   --size-selector: 0.21875rem;
   --size-field: 0.21875rem;
   --border: 1.5px;
@@ -185,45 +187,6 @@ input {
   flex-direction: column;
   background: rgb(5 11 9 / 0.98);
   border-right: 1px solid var(--cyber-line);
-}
-
-.home-brand {
-  min-height: 72px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--cyber-line);
-  text-decoration: none;
-}
-
-.home-brand-mark {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  flex: none;
-  place-items: center;
-  border: 1px solid var(--cyber-cyan);
-  color: var(--cyber-cyan);
-  font-weight: 900;
-  box-shadow: 0 0 10px rgb(78 232 194 / 0.2), inset 0 0 10px rgb(78 232 194 / 0.08);
-}
-
-.home-brand strong {
-  display: block;
-  color: var(--cyber-cyan);
-  font-size: 13px;
-  letter-spacing: 0.16em;
-  text-shadow: 0 0 9px rgb(78 232 194 / 0.45);
-}
-
-.home-brand small {
-  display: block;
-  margin-top: 4px;
-  color: #3f7063;
-  font-size: 8px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 .home-system-line {
@@ -1213,6 +1176,7 @@ input {
 
 .project-detail-header { position: relative; }
 .project-title-block { display: flex; flex-direction: column; align-items: flex-start; }
+.project-back-nav { display: flex; align-items: center; gap: 7px; color: #345d52; }
 .project-back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 9px; color: #5d887c; font-size: 8px; text-decoration: none; text-transform: uppercase; }
 .project-back-link:hover { color: var(--cyber-cyan); }
 .project-header-actions { display: flex; align-items: center; gap: 9px; }
@@ -1227,6 +1191,13 @@ input {
 
 .project-timeline { min-height: 355px; }
 .project-controls { min-height: 355px; }
+.project-intelligence { grid-column: 1 / -1; min-height: 150px; }
+.project-signal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.project-signal-channel { min-height: 91px; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 13px 16px; border-right: 1px solid #1b3c33; }
+.project-signal-channel:last-child { border-right: 0; }
+.project-signal-channel > span { color: var(--cyber-amber); font-size: 7px; }
+.project-signal-channel strong { color: #b3d9cd; font-size: 15px; }
+.project-signal-channel p { color: #587f74; font-size: 7px; line-height: 1.5; }
 .project-bars { padding: 8px 14px 14px; }
 .project-bar-row { min-height: 43px; display: grid; grid-template-columns: 54px minmax(80px, 1fr) 60px 65px 72px; align-items: center; gap: 10px; color: #62877d; font-size: 8px; }
 .project-bar-row time { color: #73998e; }
@@ -1270,10 +1241,31 @@ input {
 .project-tool-row small { color: var(--cyber-cyan); font-size: 7px; text-transform: uppercase; }
 .project-tool-row code { overflow: hidden; color: #789e94; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
 .project-tool-row em { color: var(--cyber-green); font-style: normal; text-align: right; }
+.project-activity-panel { min-height: 270px; }
+.project-commit-list,
+.project-memory-list { display: flex; flex-direction: column; }
+.project-commit-row { min-height: 55px; display: grid; grid-template-columns: 60px minmax(0, 1fr) 62px 14px; align-items: center; gap: 11px; padding: 8px 13px; border-bottom: 1px solid #15322b; color: inherit; text-decoration: none; transition: background 120ms ease; }
+.project-commit-row:hover { background: rgb(78 232 194 / 0.035); }
+.project-commit-row code { color: var(--cyber-amber); font-size: 7px; }
+.project-commit-row strong,
+.project-commit-row span { display: block; }
+.project-commit-row strong { overflow: hidden; color: #a9d0c4; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.project-commit-row span { margin-top: 4px; color: #4e776c; font-size: 7px; }
+.project-commit-row time { color: #5c8277; font-size: 7px; text-align: right; }
+.project-commit-row > svg,
+.project-memory-row > svg { color: #4f766c; }
+.project-memory-row { min-height: 72px; display: grid; grid-template-columns: minmax(125px, 1fr) repeat(3, 68px) 14px; align-items: center; gap: 10px; padding: 9px 13px; border-bottom: 1px solid #15322b; color: inherit; text-decoration: none; transition: background 120ms ease; }
+.project-memory-row:hover { background: rgb(78 232 194 / 0.035); }
+.project-memory-row > div strong,
+.project-memory-row > div span { display: block; }
+.project-memory-row > div strong { color: #acd3c7; font-size: 9px; }
+.project-memory-row > div span { margin-top: 5px; color: #52786e; font-size: 7px; }
+.project-memory-row > div:not(:first-child) strong { color: var(--cyber-cyan); font-size: 13px; }
 
 @media (max-width: 1050px) {
   .project-detail-grid { grid-template-columns: 1fr; }
-  .project-tools { grid-column: 1; }
+  .project-tools,
+  .project-intelligence { grid-column: 1; }
 }
 
 @media (max-width: 600px) {
@@ -1281,6 +1273,9 @@ input {
   .project-bar-row { grid-template-columns: 46px minmax(65px, 1fr) 52px; }
   .project-bar-row span,
   .project-bar-row em { display: none; }
+  .project-signal-grid { grid-template-columns: 1fr; }
+  .project-signal-channel { border-right: 0; border-bottom: 1px solid #1b3c33; }
+  .project-memory-row { grid-template-columns: minmax(110px, 1fr) repeat(3, 58px) 14px; }
 }
 
 @media (max-width: 480px) {
@@ -1297,9 +1292,6 @@ input {
   .cyber-status-dot.online { animation: none; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }
-
-/* Tactical overview and operational intelligence */
-.tactical-header { border-bottom-color: rgb(246 191 82 / 0.26); }
 
 .overview-clock {
   min-width: 116px;
@@ -1352,6 +1344,22 @@ input {
 .focus-row span { margin-top: 5px; color: #527b70; font-size: 8px; }
 .focus-row > div:last-child { text-align: right; }
 .focus-row > div:last-child strong { color: var(--cyber-green); }
+.focus-project-link { color: inherit; text-decoration: none; transition: background 120ms ease; }
+.focus-project-link:hover { background: rgb(78 232 194 / 0.035); }
+
+.commit-history-panel { min-height: 330px; }
+.git-project-list { max-height: 520px; overflow-y: auto; }
+.git-project-group { border-bottom: 1px solid #1b3c33; }
+.git-project-group > header { min-height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 13px; background: rgb(78 232 194 / 0.025); }
+.git-project-group > header strong,
+.git-project-link { color: var(--cyber-cyan); font-size: 8px; text-decoration: none; }
+.git-project-link:hover { color: var(--cyber-green); }
+.git-project-group > header span { color: #557d72; font-size: 7px; }
+.git-commit-row { min-height: 39px; display: grid; grid-template-columns: 55px minmax(0, 1fr) 54px; align-items: center; gap: 9px; padding: 0 13px; border-top: 1px solid #102b24; color: inherit; text-decoration: none; transition: background 120ms ease; }
+.git-commit-row:hover { background: rgb(78 232 194 / 0.035); }
+.git-commit-row code { color: var(--cyber-amber); font-size: 7px; }
+.git-commit-row span { overflow: hidden; color: #789d93; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.git-commit-row time { color: #4f766c; font-size: 7px; text-align: right; }
 
 .tactical-empty {
   min-height: 150px;
@@ -1427,6 +1435,7 @@ input {
 
 .cyber-status-label { color: var(--cyber-green); font-size: 7px; }
 .cyber-status-label.is-idle { color: var(--cyber-amber); }
+.insight-header-actions { display: flex; align-items: center; gap: 9px; }
 .insight-empty { min-height: 230px; }
 .insight-empty strong { color: var(--cyber-amber); font-size: 9px; }
 .insight-empty span { max-width: 330px; line-height: 1.6; text-transform: none; }

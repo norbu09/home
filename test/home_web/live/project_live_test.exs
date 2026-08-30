@@ -27,7 +27,10 @@ defmodule HomeWeb.ProjectLiveTest do
     {:ok, view, _html} = live(conn, ~p"/router/projects/mark_mesh")
 
     assert has_element?(view, "#project-metrics")
+    assert has_element?(view, "#project-intelligence")
     assert has_element?(view, "#project-usage-timeline")
+    assert has_element?(view, "#project-commit-history")
+    assert has_element?(view, "#project-memory-activity")
     assert has_element?(view, "#project-model-breakdown")
     assert has_element?(view, "#project-provider-breakdown")
     assert has_element?(view, "#project-tool-breakdown")
