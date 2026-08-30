@@ -1293,19 +1293,6 @@ input {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }
 
-.overview-clock {
-  min-width: 116px;
-  padding: 9px 12px;
-  border-left: 2px solid var(--cyber-amber);
-  background: rgb(246 191 82 / 0.035);
-  text-align: right;
-}
-
-.overview-clock span,
-.overview-clock strong { display: block; }
-.overview-clock span { color: #6f827a; font-size: 7px; }
-.overview-clock strong { margin-top: 3px; color: var(--cyber-amber); font-size: 18px; }
-
 .overview-vitals { margin-bottom: 12px; }
 
 .tactical-grid {

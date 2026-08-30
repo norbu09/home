@@ -116,6 +116,7 @@ defmodule HomeWeb.Layouts do
 
         <footer class="home-sidebar-footer">
           <span class="home-ticker">SYS::ACTIVE</span>
+          <.theme_toggle />
           <div><span>Gateway</span><strong>18ms</strong></div>
           <div><span>localhost:4070</span><span>v0.1.0</span></div>
         </footer>
