@@ -107,20 +107,27 @@
 
 /* This file is for your main application CSS */
 
+/* Compatibility tokens for the currently pinned kfos_ui revision. */
 :root {
-  --cyber-bg: #050b09;
-  --cyber-surface: #08130f;
   --cyber-panel: #0a1712;
   --cyber-panel-raised: #0d1c17;
   --cyber-line: #173d33;
   --cyber-line-strong: #286151;
-  --cyber-cyan: #4ee8c2;
-  --cyber-green: #63e594;
-  --cyber-amber: #e7c25e;
-  --cyber-magenta: #e45ba8;
-  --cyber-red: #f16965;
-  --cyber-text: #afd1c6;
-  --cyber-muted: #537e71;
+  --cyber-text-strong: #d5ebe4;
+  --cyber-text-soft: #8bb5a9;
+  --cyber-control: #091711;
+  --cyber-control-raised: #122c24;
+}
+
+[data-theme="light"] {
+  --cyber-panel: oklch(96% 0.025 112);
+  --cyber-panel-raised: oklch(93% 0.035 112);
+  --cyber-line: oklch(79% 0.055 165);
+  --cyber-line-strong: oklch(62% 0.08 170);
+  --cyber-text-strong: oklch(18% 0.04 175);
+  --cyber-text-soft: oklch(38% 0.055 175);
+  --cyber-control: oklch(98% 0.015 108);
+  --cyber-control-raised: oklch(91% 0.035 112);
 }
 
 html {
@@ -148,8 +155,8 @@ input {
 
 .cyber-grid-bg {
   background-image:
-    linear-gradient(rgb(78 232 194 / 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(78 232 194 / 0.025) 1px, transparent 1px);
+    linear-gradient(color-mix(in oklch, var(--cyber-cyan) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklch, var(--cyber-cyan) 5%, transparent) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -185,7 +192,7 @@ input {
   width: 238px;
   display: flex;
   flex-direction: column;
-  background: rgb(5 11 9 / 0.98);
+  background: color-mix(in oklch, var(--cyber-bg) 98%, transparent);
   border-right: 1px solid var(--cyber-line);
 }
 
@@ -195,8 +202,8 @@ input {
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
-  border-bottom: 1px solid #132d26;
-  color: #588477;
+  border-bottom: 1px solid var(--cyber-line);
+  color: var(--cyber-muted);
   font-size: 8px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -253,7 +260,7 @@ input {
   margin-bottom: 2px;
   padding: 0 11px;
   border: 1px solid transparent;
-  color: #659185;
+  color: var(--cyber-muted);
   font-size: 10px;
   letter-spacing: 0.07em;
   text-decoration: none;
@@ -262,9 +269,9 @@ input {
 }
 
 .home-nav-item:hover {
-  border-color: rgb(78 232 194 / 0.18);
-  background: rgb(78 232 194 / 0.04);
-  color: #8bc7b6;
+  border-color: color-mix(in oklch, var(--cyber-cyan) 28%, transparent);
+  background: color-mix(in oklch, var(--cyber-cyan) 7%, transparent);
+  color: var(--cyber-text-soft);
 }
 
 .home-nav-item.is-active {
@@ -277,7 +284,7 @@ input {
 
 .home-nav-item small {
   margin-left: auto;
-  color: #376457;
+  color: var(--cyber-muted);
   font-size: 8px;
 }
 
@@ -305,7 +312,7 @@ input {
 .home-sidebar-footer {
   padding: 14px 16px;
   border-top: 1px solid var(--cyber-line);
-  color: #426d61;
+  color: var(--cyber-muted);
   font-size: 8px;
   text-transform: uppercase;
 }
@@ -317,7 +324,7 @@ input {
 }
 
 .home-sidebar-footer strong { color: var(--cyber-green); }
-.home-ticker { color: #39685b; letter-spacing: 0.12em; }
+.home-ticker { color: var(--cyber-muted); letter-spacing: 0.12em; }
 
 .home-viewport {
   width: calc(100% - 238px);
@@ -356,7 +363,7 @@ input {
 
 .router-page-header h1 {
   margin: 5px 0 0;
-  color: #d5ebe4;
+  color: var(--cyber-text-strong);
   font-size: 20px;
   font-weight: 750;
   letter-spacing: 0.07em;
@@ -385,9 +392,9 @@ input {
   align-items: center;
   gap: 7px;
   padding: 0 8px;
-  border: 1px solid #2b5d50;
-  background: #0c1c17;
-  color: #76a99b;
+  border: 1px solid var(--cyber-line-strong);
+  background: var(--cyber-control-raised);
+  color: var(--cyber-text-soft);
   font-size: 8px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -399,10 +406,10 @@ input {
   height: 32px;
   display: grid;
   place-items: center;
-  border: 1px solid #285548;
+  border: 1px solid var(--cyber-line-strong);
   border-radius: 1px;
-  background: #091711;
-  color: #6da797;
+  background: var(--cyber-control);
+  color: var(--cyber-text-soft);
   cursor: pointer;
   transition: color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
@@ -417,8 +424,8 @@ input {
 
 .cyber-panel {
   position: relative;
-  border: 1px solid rgb(53 125 105 / 0.7);
-  background: rgb(8 20 15 / 0.95);
+  border: 1px solid color-mix(in oklch, var(--cyber-cyan) 35%, var(--cyber-line));
+  background: color-mix(in oklch, var(--cyber-panel) 95%, transparent);
 }
 
 .cyber-panel::before,
@@ -470,7 +477,7 @@ input {
 .router-metric > strong {
   display: block;
   margin-top: 8px;
-  color: #d0e8e0;
+  color: var(--cyber-text-strong);
   font-size: 21px;
   line-height: 1;
   text-shadow: 0 0 8px rgb(78 232 194 / 0.22);
@@ -479,7 +486,7 @@ input {
 .router-metric > small {
   display: block;
   margin-top: 8px;
-  color: #4b786b;
+  color: var(--cyber-muted);
   font-size: 8px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -510,12 +517,12 @@ input {
   justify-content: space-between;
   gap: 12px;
   padding: 8px 14px;
-  border-bottom: 1px solid #1a4036;
+  border-bottom: 1px solid var(--cyber-line);
 }
 
 .cyber-panel-header h2 {
   margin: 0;
-  color: #bad7ce;
+  color: var(--cyber-text-strong);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -524,7 +531,7 @@ input {
 
 .cyber-panel-header p {
   margin: 5px 0 0;
-  color: #456f63;
+  color: var(--cyber-muted);
   font-size: 8px;
   text-transform: uppercase;
 }
@@ -1318,7 +1325,7 @@ input {
   align-items: center;
   gap: 13px;
   padding: 0 15px;
-  border-bottom: 1px solid #15322b;
+  border-bottom: 1px solid var(--cyber-line);
 }
 
 .focus-rank { width: 3px; height: 35px; background: var(--cyber-cyan); box-shadow: 0 0 8px rgb(78 232 194 / 0.35); }
@@ -1327,8 +1334,8 @@ input {
 .focus-row > div:nth-child(2) span,
 .focus-row > div:last-child strong,
 .focus-row > div:last-child span { display: block; }
-.focus-row strong { color: #acd3c7; font-size: 10px; }
-.focus-row span { margin-top: 5px; color: #527b70; font-size: 8px; }
+.focus-row strong { color: var(--cyber-text-strong); font-size: 10px; }
+.focus-row span { margin-top: 5px; color: var(--cyber-muted); font-size: 8px; }
 .focus-row > div:last-child { text-align: right; }
 .focus-row > div:last-child strong { color: var(--cyber-green); }
 .focus-project-link { color: inherit; text-decoration: none; transition: background 120ms ease; }
@@ -1336,17 +1343,17 @@ input {
 
 .commit-history-panel { min-height: 330px; }
 .git-project-list { max-height: 520px; overflow-y: auto; }
-.git-project-group { border-bottom: 1px solid #1b3c33; }
+.git-project-group { border-bottom: 1px solid var(--cyber-line); }
 .git-project-group > header { min-height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 13px; background: rgb(78 232 194 / 0.025); }
 .git-project-group > header strong,
 .git-project-link { color: var(--cyber-cyan); font-size: 8px; text-decoration: none; }
 .git-project-link:hover { color: var(--cyber-green); }
-.git-project-group > header span { color: #557d72; font-size: 7px; }
-.git-commit-row { min-height: 39px; display: grid; grid-template-columns: 55px minmax(0, 1fr) 54px; align-items: center; gap: 9px; padding: 0 13px; border-top: 1px solid #102b24; color: inherit; text-decoration: none; transition: background 120ms ease; }
+.git-project-group > header span { color: var(--cyber-muted); font-size: 7px; }
+.git-commit-row { min-height: 39px; display: grid; grid-template-columns: 55px minmax(0, 1fr) 54px; align-items: center; gap: 9px; padding: 0 13px; border-top: 1px solid var(--cyber-line); color: inherit; text-decoration: none; transition: background 120ms ease; }
 .git-commit-row:hover { background: rgb(78 232 194 / 0.035); }
 .git-commit-row code { color: var(--cyber-amber); font-size: 7px; }
-.git-commit-row span { overflow: hidden; color: #789d93; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
-.git-commit-row time { color: #4f766c; font-size: 7px; text-align: right; }
+.git-commit-row span { overflow: hidden; color: var(--cyber-text-soft); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.git-commit-row time { color: var(--cyber-muted); font-size: 7px; text-align: right; }
 
 .tactical-empty {
   min-height: 150px;
@@ -1356,7 +1363,7 @@ input {
   justify-content: center;
   gap: 9px;
   padding: 20px;
-  color: #4b7468;
+  color: var(--cyber-muted);
   font-size: 8px;
   text-align: center;
   text-transform: uppercase;
@@ -1367,8 +1374,8 @@ input {
   grid-template-columns: minmax(150px, 1fr) minmax(160px, 0.7fr);
   gap: 8px;
   padding: 12px;
-  border-bottom: 1px solid #21483d;
-  background: #08130f;
+  border-bottom: 1px solid var(--cyber-line);
+  background: var(--cyber-surface);
 }
 
 .tactical-inline-form > :nth-child(3) { grid-column: 1 / -1; }
@@ -1383,12 +1390,12 @@ input {
   align-content: center;
   gap: 5px;
   padding: 12px 48px 12px 15px;
-  border-bottom: 1px solid #15322b;
+  border-bottom: 1px solid var(--cyber-line);
 }
 
 .tactical-item-row time { color: var(--cyber-amber); font-size: 7px; }
-.tactical-item-row strong { color: #b1d5ca; font-size: 10px; }
-.tactical-item-row > span { color: #547b70; font-size: 8px; }
+.tactical-item-row strong { color: var(--cyber-text-strong); font-size: 10px; }
+.tactical-item-row > span { color: var(--cyber-muted); font-size: 8px; }
 .tactical-item-row .cyber-icon-button { position: absolute; top: 22px; right: 12px; width: 27px; height: 27px; }
 
 .goal-row {
@@ -1398,15 +1405,15 @@ input {
   align-items: center;
   gap: 11px;
   padding: 7px 13px;
-  border-bottom: 1px solid #15322b;
+  border-bottom: 1px solid var(--cyber-line);
 }
 
 .goal-row.is-complete { opacity: 0.48; }
 .goal-row.is-complete strong { text-decoration: line-through; }
 .goal-row strong,
 .goal-row span { display: block; }
-.goal-row strong { color: #acd3c7; font-size: 9px; }
-.goal-row span { margin-top: 4px; color: #617d75; font-size: 7px; }
+.goal-row strong { color: var(--cyber-text-strong); font-size: 9px; }
+.goal-row span { margin-top: 4px; color: var(--cyber-muted); font-size: 7px; }
 .goal-row .cyber-icon-button { width: 27px; height: 27px; }
 
 .goal-check {
@@ -1414,7 +1421,7 @@ input {
   height: 25px;
   display: grid;
   place-items: center;
-  border: 1px solid #2f6758;
+  border: 1px solid var(--cyber-line-strong);
   background: transparent;
   color: var(--cyber-green);
   cursor: pointer;
@@ -1433,21 +1440,21 @@ input {
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 12px;
   padding: 13px 15px;
-  border-bottom: 1px solid #15322b;
+  border-bottom: 1px solid var(--cyber-line);
 }
 .insight-row > span { color: var(--cyber-magenta); font-size: 8px; }
-.insight-row strong { color: #add3c7; font-size: 9px; }
-.insight-row p { margin-top: 5px; color: #5b8277; font-size: 8px; line-height: 1.6; }
+.insight-row strong { color: var(--cyber-text-strong); font-size: 9px; }
+.insight-row p { margin-top: 5px; color: var(--cyber-muted); font-size: 8px; line-height: 1.6; }
 
 .intel-summary { grid-template-columns: repeat(2, minmax(0, 240px)); }
 .intel-panel { overflow-x: auto; }
 .intel-columns,
 .intel-row { display: grid; align-items: center; gap: 10px; padding: 0 14px; }
 .intel-columns { min-height: 35px; border-bottom: 1px solid #23473e; color: var(--cyber-amber); font-size: 7px; text-transform: uppercase; }
-.intel-row { min-height: 67px; border-bottom: 1px solid #15322b; color: #648c81; font-size: 8px; }
+.intel-row { min-height: 67px; border-bottom: 1px solid var(--cyber-line); color: var(--cyber-text-soft); font-size: 8px; }
 .intel-row:hover { background: rgb(78 232 194 / 0.025); }
-.intel-row strong { color: #b5dacf; font-size: 9px; }
-.intel-row code { overflow: hidden; color: #628b80; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.intel-row strong { color: var(--cyber-text-strong); font-size: 9px; }
+.intel-row code { overflow: hidden; color: var(--cyber-text-soft); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .intel-row em { color: var(--cyber-amber); font-size: 8px; font-style: normal; }
 .intel-row em.is-online { color: var(--cyber-green); }
 .intel-row.is-disabled { opacity: 0.45; }
