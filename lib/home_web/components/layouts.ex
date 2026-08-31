@@ -41,9 +41,18 @@ defmodule HomeWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <div class="home-shell">
-      <input id="home-nav-toggle" type="checkbox" class="home-nav-toggle" />
-      <aside id="home-sidebar" class="home-sidebar">
+    <.app_shell
+      id="home-shell"
+      main_id="home-main"
+      sidebar_id="home-sidebar"
+      mobile_title="HOME//CORE"
+      main_class="home-main w-full max-w-[1600px] min-h-screen mx-auto p-4 lg:p-6"
+    >
+      <:mobile_actions>
+        <i class="cyber-status-dot online"></i>
+      </:mobile_actions>
+
+      <:sidebar_header>
         <.app_header
           href={~p"/"}
           image_src={~p"/images/home-core-mark.png"}
@@ -56,7 +65,9 @@ defmodule HomeWeb.Layouts do
           <span><i class="cyber-status-dot online"></i>systems nominal</span>
           <span>SEC:LOCAL</span>
         </div>
+      </:sidebar_header>
 
+      <:sidebar_nav>
         <nav class="home-nav" aria-label="Home applications">
           <.nav_item
             href={~p"/"}
@@ -113,27 +124,19 @@ defmodule HomeWeb.Layouts do
             class="home-nav-item"
           />
         </nav>
+      </:sidebar_nav>
 
+      <:sidebar_footer>
         <footer class="home-sidebar-footer">
           <span class="home-ticker">SYS::ACTIVE</span>
           <.theme_toggle />
           <div><span>Gateway</span><strong>18ms</strong></div>
           <div><span>localhost:4070</span><span>v0.1.0</span></div>
         </footer>
-      </aside>
+      </:sidebar_footer>
 
-      <div class="home-viewport">
-        <header class="home-mobile-header">
-          <label for="home-nav-toggle" class="cyber-icon-button" aria-label="Open navigation">
-            <.icon name="hero-bars-3" class="size-4" />
-          </label>
-          <span>HOME//CORE</span>
-          <i class="cyber-status-dot online"></i>
-        </header>
-        <main id="home-main" class="home-main">{render_slot(@inner_block)}</main>
-      </div>
-      <label for="home-nav-toggle" class="home-nav-overlay" aria-label="Close navigation"></label>
-    </div>
+      {render_slot(@inner_block)}
+    </.app_shell>
 
     <.flash_group flash={@flash} />
     """

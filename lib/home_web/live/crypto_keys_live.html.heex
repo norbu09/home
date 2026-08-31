@@ -4,16 +4,17 @@
   active_nav={:secrets}
   secret_count={@secret_count}
 >
-  <header id="crypto-keys-header" class="router-page-header keys-page-header">
-    <div>
-      <span class="cyber-eyebrow">// Encrypted material</span>
-      <h1>Crypto Keys</h1>
-      <p>Local secret store · AES-256-GCM secured · values never exposed</p>
-    </div>
-    <button id="new-secret" class="cyber-primary-button keys-add-button" phx-click="new_secret">
-      <.icon name="hero-plus" class="size-4" />Store key
-    </button>
-  </header>
+  <.page_header
+    id="crypto-keys-header"
+    title="Crypto Keys"
+    subtitle="Local secret store · AES-256-GCM secured · values never exposed"
+  >
+    <:actions>
+      <button id="new-secret" class="cyber-primary-button keys-add-button" phx-click="new_secret">
+        <.icon name="hero-plus" class="size-4" />Store key
+      </button>
+    </:actions>
+  </.page_header>
 
   <section id="keys-metrics" class="keys-metrics" aria-label="Secret store status">
     <div class="cyber-panel key-metric">

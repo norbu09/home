@@ -4,23 +4,20 @@
   active_nav={:router}
   secret_count={@secret_count}
 >
-  <header id="project-detail-header" class="router-page-header project-detail-header">
-    <div class="project-title-block">
-      <nav class="project-back-nav" aria-label="Project breadcrumbs">
-        <.link navigate={~p"/"} class="project-back-link"><.icon
-          name="hero-arrow-left"
-          class="size-3"
-        /> Overview</.link><span>/</span><.link navigate={~p"/router"} class="project-back-link">Router matrix</.link>
-      </nav>
-      <span class="router-kicker">// Project operations node</span>
-      <h1>{String.upcase(@details.policy.name)}</h1>
-      <p>
-        {@project_id} · {if @details.policy.enabled,
-          do: "REQUESTS ENABLED",
-          else: "PROJECT PAUSED"}
-      </p>
-    </div>
-    <div class="project-header-actions">
+  <nav class="project-back-nav" aria-label="Project breadcrumbs">
+    <.link navigate={~p"/"} class="project-back-link"><.icon
+      name="hero-arrow-left"
+      class="size-3"
+    /> Overview</.link><span>/</span><.link navigate={~p"/router"} class="project-back-link">Router matrix</.link>
+  </nav>
+  <.page_header
+    id="project-detail-header"
+    title={@details.policy.name}
+    subtitle={
+      "#{@project_id} · #{if @details.policy.enabled, do: "REQUESTS ENABLED", else: "PROJECT PAUSED"}"
+    }
+  >
+    <:actions>
       <span class={["project-state", @details.policy.enabled && "is-online"]}><i class="cyber-status-dot online"></i>{if @details.policy.enabled,
         do: "ONLINE",
         else: "PAUSED"}</span>
@@ -31,8 +28,8 @@
         title="Refresh project"
         aria-label="Refresh project"
       ><.icon name="hero-arrow-path" class="size-4" /></button>
-    </div>
-  </header>
+    </:actions>
+  </.page_header>
 
   <section id="project-metrics" class="router-metrics" aria-label="Project usage summary">
     <.metric

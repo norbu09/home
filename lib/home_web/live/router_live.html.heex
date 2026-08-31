@@ -4,13 +4,12 @@
   active_nav={:router}
   secret_count={@secret_count}
 >
-  <header id="router-header" class="router-page-header">
-    <div>
-      <span class="cyber-eyebrow">// Routing intelligence</span>
-      <h1>Project Control</h1>
-      <p>Quota telemetry · provider routing · access state</p>
-    </div>
-    <div class="router-header-actions">
+  <.page_header
+    id="router-header"
+    title="Project Control"
+    subtitle="Quota telemetry · provider routing · access state"
+  >
+    <:actions>
       <span class="cyber-tag"><i class="cyber-status-dot online"></i>Live telemetry</span>
       <button
         id="refresh-router"
@@ -29,8 +28,8 @@
       >
         <.icon name="hero-adjustments-horizontal" class="size-4" />
       </button>
-    </div>
-  </header>
+    </:actions>
+  </.page_header>
 
   <section id="router-metrics" class="router-metrics" aria-label="Router metrics">
     <.metric

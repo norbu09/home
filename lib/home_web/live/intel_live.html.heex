@@ -4,20 +4,17 @@
   active_nav={@active_nav}
   secret_count={@secret_count}
 >
-  <header id="intel-header" class="router-page-header">
-    <div>
-      <span class="router-kicker">{@page_kicker}</span><h1>{@page_heading}</h1><p>
-        {@page_summary}
-      </p>
-    </div>
-    <button
-      id="refresh-intel"
-      class="cyber-icon-button"
-      phx-click="refresh"
-      title="Refresh status"
-      aria-label="Refresh status"
-    ><.icon name="hero-arrow-path" class="size-4" /></button>
-  </header>
+  <.page_header id="intel-header" title={@page_heading} subtitle={@page_summary}>
+    <:actions>
+      <button
+        id="refresh-intel"
+        class="cyber-icon-button"
+        phx-click="refresh"
+        title="Refresh status"
+        aria-label="Refresh status"
+      ><.icon name="hero-arrow-path" class="size-4" /></button>
+    </:actions>
+  </.page_header>
 
   <%= case @live_action do %>
     <% :services -> %>
