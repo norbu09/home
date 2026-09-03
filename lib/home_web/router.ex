@@ -25,6 +25,11 @@ defmodule HomeWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :mcp do
+    plug :accepts, ["json"]
+    plug HomeWeb.Plugs.MemoryTokenAuth
+  end
+
   scope "/v1", HomeWeb do
     pipe_through :llm_proxy
 
@@ -41,6 +46,14 @@ defmodule HomeWeb.Router do
     post "/remember", MemoryController, :remember
     post "/search", MemoryController, :search
     get "/health", MemoryController, :health
+  end
+
+  # MCP surface (streamable HTTP) for Claude Code / Codex — same memory,
+  # same bearer token as the REST surface above.
+  scope "/mcp" do
+    pipe_through :mcp
+
+    forward "/", Hermes.Server.Transport.StreamableHTTP.Plug, server: HomeWeb.MCP.MemoryServer
   end
 
   scope "/", HomeWeb do

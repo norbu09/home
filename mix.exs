@@ -91,6 +91,8 @@ defmodule Home.MixProject do
        github: "kittyfromouterspace/agentic",
        ref: "836ffd64d654fe1a2261f894243a35b9417da91d",
        runtime: false},
+      # MCP server surface (streamable HTTP) for Claude Code / Codex memory access
+      {:hermes_mcp, "~> 0.14.1"},
       # Pinned git ref (overrides the hex pin agentic declares transitively) —
       # home's memory integration (Home.Memory) relies on recollect features
       # landed after the last hex release (B-1363..B-1367 + opencode schema fix).

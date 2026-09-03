@@ -17,6 +17,10 @@ defmodule Home.Application do
       Home.LLMProxy.UsageTracker,
       Home.LLMProxy.ModelRouteRefresher,
       Home.Memory.ImportScheduler,
+      Hermes.Server.Registry,
+      # start: true — hermes only auto-starts the transport when it detects a
+      # running HTTP server, which is false under `mix test` (server: false).
+      {HomeWeb.MCP.MemoryServer, transport: {:streamable_http, start: true}},
       # Start a worker by calling: Home.Worker.start_link(arg)
       # {Home.Worker, arg},
       # Start to serve requests, typically the last entry

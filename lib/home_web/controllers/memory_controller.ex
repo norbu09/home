@@ -11,7 +11,7 @@ defmodule HomeWeb.MemoryController do
 
   alias Home.Memory
 
-  plug :authorize
+  plug HomeWeb.Plugs.MemoryTokenAuth
 
   def remember(conn, %{"content" => content}) when is_binary(content) do
     opts = [
@@ -64,35 +64,6 @@ defmodule HomeWeb.MemoryController do
 
   def health(conn, _params) do
     json(conn, %{status: "ok", memory: Memory.health()})
-  end
-
-  # ── Auth ────────────────────────────────────────────────────────────────
-
-  defp authorize(conn, _opts) do
-    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         {:ok, expected} <- api_token(),
-         true <- Plug.Crypto.secure_compare(token, expected) do
-      conn
-    else
-      _ ->
-        conn
-        |> put_status(401)
-        |> json(%{error: "unauthorized"})
-        |> halt()
-    end
-  end
-
-  defp api_token do
-    case Home.Secrets.Store.get("memory", "api_token") do
-      {:ok, token} ->
-        {:ok, token}
-
-      _ ->
-        case System.get_env("MEMORY_API_TOKEN") do
-          token when is_binary(token) and token != "" -> {:ok, token}
-          _ -> :error
-        end
-    end
   end
 
   defp compact(opts), do: Enum.reject(opts, fn {_k, v} -> is_nil(v) end)

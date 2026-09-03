@@ -18,7 +18,15 @@ tables in Home.Repo) behind the `Home.Memory` facade.
   `llm/OPENROUTER_API_KEY`, `llm_fn/2` via the local proxy `memory` model)
 - HTTP surface (opencode plugin): `POST /api/memory/remember`,
   `POST /api/memory/search`, `GET /api/memory/health` — bearer token from
-  secret store `memory/api_token` or `MEMORY_API_TOKEN` env
+  secret store `memory/api_token` or `MEMORY_API_TOKEN env
+- MCP surface (Claude Code / Codex): streamable-HTTP endpoint at `/mcp`
+  (`HomeWeb.MCP.MemoryServer`, hermes_mcp) with `memory_remember` /
+  `memory_search` / `memory_health` tools; same bearer token, enforced by
+  `HomeWeb.Plugs.MemoryTokenAuth` (shared with the REST surface). The
+  transport needs `start: true` on the server child — hermes only
+  auto-starts it when a Phoenix server is detected (false under mix test)
+- Claude Code SessionStart hook: `integrations/claude-code/session-memory.sh`
+  (auto-injects a per-project memory search into session context)
 - opencode plugin: `~/.config/opencode/plugins/recollect.ts`
   (`recollect_remember`/`recollect_search`; token in fish universal var
   `RECOLLECT_API_TOKEN`)

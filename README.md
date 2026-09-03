@@ -115,6 +115,58 @@ Retrieval-only by design: search returns a context pack (no LLM on the read
 path) and nothing is captured automatically — memory writes are explicit tool
 calls.
 
+## Use from Claude Code
+
+Claude Code talks to home over the **MCP endpoint** (`/mcp`, streamable HTTP,
+same bearer token as the REST API — tools: `memory_remember`,
+`memory_search`, `memory_health`):
+
+```sh
+claude mcp add --transport http home-memory http://127.0.0.1:4070/mcp \
+  --header "Authorization: Bearer $RECOLLECT_API_TOKEN"
+```
+
+For automatic recall at the start of every session, install the SessionStart
+hook (`./install.sh` offers to do this): it searches memory for the current
+project and injects the result as session context.
+
+```sh
+mkdir -p ~/.claude/hooks
+cp integrations/claude-code/session-memory.sh ~/.claude/hooks/
+```
+
+then register it in `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "~/.claude/hooks/session-memory.sh" } ] }
+    ]
+  }
+}
+```
+
+The hook reads `RECOLLECT_API_TOKEN` / `RECOLLECT_URL` from the environment
+and exits silently when home is unreachable, so it never blocks a session.
+
+## Use from Codex
+
+Codex reaches the same MCP endpoint via its streamable-HTTP client
+(`~/.codex/config.toml`):
+
+```toml
+experimental_use_rmcp_client = true
+
+[mcp_servers.home_memory]
+url = "http://127.0.0.1:4070/mcp"
+bearer_token_env_var = "RECOLLECT_API_TOKEN"
+```
+
+Add a line to the project's `AGENTS.md` telling the agent to call
+`memory_search` at task start and `memory_remember` for durable lessons —
+Codex has no session-start hook, so the instruction is the recall trigger.
+
 ## Local setup (without Docker)
 
 Prerequisites:

@@ -201,6 +201,25 @@ if [ "$OPENCODE" = 1 ] && [ -d "$HOME/.config/opencode" ]; then
   fi
 fi
 
+# ── Claude Code hook + MCP hint ───────────────────────────────────────────
+
+if [ "$OPENCODE" = 1 ] && [ -d "$HOME/.claude" ]; then
+  step "Claude Code memory hook"
+  if ask "Install the SessionStart memory hook to ~/.claude/hooks/?"; then
+    mkdir -p "$HOME/.claude/hooks"
+    cp integrations/claude-code/session-memory.sh "$HOME/.claude/hooks/session-memory.sh"
+    chmod +x "$HOME/.claude/hooks/session-memory.sh"
+    say "installed ~/.claude/hooks/session-memory.sh"
+    say "register it in ~/.claude/settings.json:"
+    say '  "hooks": { "SessionStart": [ { "hooks": ['
+    say '    { "type": "command", "command": "~/.claude/hooks/session-memory.sh" } ] } ] }'
+  fi
+  say ""
+  say "Claude Code MCP (remember/search tools):"
+  say "  claude mcp add --transport http home-memory http://127.0.0.1:${PORT:-4070}/mcp \\"
+  say "    --header \"Authorization: Bearer \$RECOLLECT_API_TOKEN\""
+fi
+
 # ── Done ──────────────────────────────────────────────────────────────────
 
 step "Done"
