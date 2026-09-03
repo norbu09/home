@@ -7,6 +7,21 @@
 # General application configuration
 import Config
 
+# Recollect agent memory (Home.Memory facade; HTTP surface in
+# HomeWeb.MemoryController). Embeddings via OpenRouter key from the Cloak
+# secret store; graph extraction via home's own LLM proxy (`memory` model).
+# Both degrade cleanly when unconfigured.
+config :recollect,
+  repo: Home.Repo,
+  embedding: [
+    provider: Recollect.Embedding.OpenRouter,
+    credentials_fn: &Home.Memory.embedding_credentials/0
+  ],
+  extraction: [
+    provider: Recollect.Extraction.LlmJson,
+    llm_fn: &Home.Memory.llm_fn/2
+  ]
+
 config :home, :llm_usage_sweep_interval_ms, 60_000
 
 config :home, :cognee_insights,

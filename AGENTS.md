@@ -5,6 +5,25 @@ This is a web application written using the Phoenix web framework.
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
 - Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
 
+## Agent memory (Recollect)
+
+Home hosts the local agent memory (replacing the retired local cognee instance,
+2026-09-03): Recollect (path dep `../recollect`, pgvector tables in Home.Repo)
+behind the `Home.Memory` facade.
+
+- Facade: `lib/home/memory.ex` — `remember/2`, `search/2` (tier `:auto`,
+  ILIKE fallback when embeddings are disabled), `health/0`, plus the Recollect
+  config callbacks (`embedding_credentials/0` via Cloak store
+  `llm/OPENROUTER_API_KEY`, `llm_fn/2` via the local proxy `memory` model)
+- HTTP surface (opencode plugin): `POST /api/memory/remember`,
+  `POST /api/memory/search`, `GET /api/memory/health` — bearer token from
+  secret store `memory/api_token` or `MEMORY_API_TOKEN` env
+- opencode plugin: `~/.config/opencode/plugins/recollect.ts`
+  (`recollect_remember`/`recollect_search`; token in fish universal var
+  `RECOLLECT_API_TOKEN`)
+- Retrieval-only read path by design (no LLM completion in search); no
+  auto-capture of session output — explicit remember calls only
+
 ### Phoenix v1.8 guidelines
 
 - **Always** begin your LiveView templates with `<Layouts.app flash={@flash} ...>` which wraps all inner content

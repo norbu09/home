@@ -9,6 +9,7 @@ config :home, Home.Repo,
   database: "home_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
+  types: Recollect.PostgrexTypes,
   pool_size: 10
 
 # For development, we disable any cache and enable

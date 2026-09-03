@@ -33,6 +33,16 @@ defmodule HomeWeb.Router do
     post "/embeddings", LLMProxyController, :embeddings
   end
 
+  # Agent memory surface for the local opencode plugin (recollect-backed,
+  # bearer-token authed in the controller).
+  scope "/api/memory", HomeWeb do
+    pipe_through :llm_proxy
+
+    post "/remember", MemoryController, :remember
+    post "/search", MemoryController, :search
+    get "/health", MemoryController, :health
+  end
+
   scope "/", HomeWeb do
     pipe_through :llm_proxy
 

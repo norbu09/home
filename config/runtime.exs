@@ -66,6 +66,7 @@ if config_env() == :prod do
   config :home, Home.Repo,
     # ssl: true,
     url: database_url,
+    types: Recollect.PostgrexTypes,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     # For machines with several cores, consider starting multiple pools of `pool_size`
     # pool_count: 4,

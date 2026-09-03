@@ -18,6 +18,7 @@ config :home, Home.Repo,
   hostname: "localhost",
   database: "home_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
+  types: Recollect.PostgrexTypes,
   pool_size: System.schedulers_online() * 2
 
 # We don't run a server during test. If one is required,

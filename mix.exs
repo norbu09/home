@@ -87,6 +87,13 @@ defmodule Home.MixProject do
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:agentic, path: "../agentic", runtime: false},
+      # Local checkout, overriding the hex pin agentic declares transitively —
+      # home's memory integration (Home.Memory) relies on local recollect
+      # features (B-1363..B-1367).
+      {:recollect, path: "../recollect", override: true},
+      # Optional recollect dep — declared explicitly so Postgrex gets the
+      # vector type (Recollect.PostgrexTypes).
+      {:pgvector, "~> 0.3"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
