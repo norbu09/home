@@ -23,8 +23,17 @@ beyond the LLM providers you configure.
 
 ## Run with Docker (or Podman)
 
-Prerequisites: Docker (or Podman) + a compose provider
-(`docker compose` or `podman-compose`).
+```sh
+./install.sh
+```
+
+The installer checks for a container runtime with compose support
+(docker/podman), generates all secrets, writes a mode-600 `.env`, offers to
+install the [opencode plugin](#use-from-opencode), and starts the stack.
+Flags: `--yes` (no prompts), `--no-start` (config only), `--force`
+(regenerate secrets), `--no-opencode`.
+
+Prefer the manual route?
 
 ```sh
 cp .env.example .env
