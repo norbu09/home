@@ -104,16 +104,47 @@ Retrieval-only by design: search returns a context pack (no LLM on the read
 path) and nothing is captured automatically — memory writes are explicit tool
 calls.
 
-## Develop
+## Local setup (without Docker)
 
-Standard Phoenix app:
+Prerequisites:
+
+- **Elixir 1.19 / Erlang OTP 28** — e.g. via
+  [asdf](https://asdf-vm.com): `asdf install` (`elixir --version` should
+  report 1.19.x on OTP 28)
+- **Postgres 16+ with the pgvector extension** — easiest via the container
+  image: `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres pgvector/pgvector:pg17`
+  (or install `postgresql` + `pgvector` packages from your distro)
+
+Then:
 
 ```sh
-mix setup          # deps, assets, database
-mix phx.server     # http://localhost:4070
-mix precommit      # format + compile (warnings as errors) + tests
+mix setup          # deps, assets, create + migrate the home_dev database
+mix phx.server     # serves http://localhost:4070
 ```
 
-Requires Elixir 1.19 / Erlang OTP 28 and Postgres with the pgvector
-extension (the compose `db` service provides it; locally, enable it with
-`CREATE EXTENSION IF NOT EXISTS vector`).
+`mix setup` migrates the database, and the migrations enable the `vector`
+extension themselves — a stock Postgres superuser connection is enough.
+Development uses the built-in `postgres/postgres` credentials against
+`localhost` (edit `config/dev.exs` if yours differ) and a committed
+dev-only encryption key, so no `.env` is needed locally.
+
+First run: open [http://localhost:4070/register](http://localhost:4070/register)
+and create your account. Optional follow-ups:
+
+- **Memory API token** — the memory HTTP API needs a bearer token. Either
+  `export MEMORY_API_TOKEN=...` before starting the server, or add it in the
+  UI under **Crypto Keys** (service `memory`, key `api_token`).
+- **LLM provider keys** (OpenRouter etc.) — add them under **Crypto Keys**
+  to activate the router.
+- **Scheduled memory import** — off by default; enable it on the
+  **Settings** page, or run a one-off with `mix home.memory.import`
+  (`--dry-run` to preview).
+
+Useful commands:
+
+```sh
+mix test               # test suite (uses the home_test database)
+mix precommit          # format + compile (warnings as errors) + tests — run before committing
+mix home.memory.import --dry-run
+iex -S mix phx.server  # server with a REPL
+```
