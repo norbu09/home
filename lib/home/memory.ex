@@ -35,18 +35,25 @@ defmodule Home.Memory do
       {:error, :possible_secret}
     else
       scope = Keyword.get(opts, :scope, @default_scope)
+      source = normalize_source(Keyword.get(opts, :source, "agent"))
 
       Recollect.Knowledge.remember(content,
         entry_type: Keyword.get(opts, :entry_type, "note"),
         owner_id: owner_uuid(),
         scope_id: scope_uuid(scope),
-        source: Keyword.get(opts, :source, "agent"),
+        source: source,
         source_id: Keyword.get(opts, :source_id),
         tags: Keyword.get(opts, :tags, []),
         metadata: %{"scope" => scope, "source" => Keyword.get(opts, :source, "opencode")}
       )
     end
   end
+
+  # Recollect's Entry.source enum only allows agent/system/user — callers
+  # pass their agent name ("opencode", "claude", ...), which we fold into
+  # "agent"; the original name survives in metadata.source.
+  defp normalize_source(source) when source in ["agent", "system", "user"], do: source
+  defp normalize_source(_other), do: "agent"
 
   @doc "True when an entry with this source_id already exists in the scope."
   def source_exists?(scope, source_id) do

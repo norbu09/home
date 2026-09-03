@@ -24,6 +24,16 @@ defmodule Home.MemoryTest do
            end)
   end
 
+  test "remember/2 folds agent names into the source enum" do
+    # Callers pass their agent name; recollect's enum only allows
+    # agent/system/user, so the facade normalizes (original kept in metadata).
+    assert {:ok, entry} =
+             Memory.remember("source normalization probe", scope: "home", source: "opencode")
+
+    assert entry.source == "agent"
+    assert entry.metadata["source"] == "opencode"
+  end
+
   test "source_exists?/2 detects deterministic source ids" do
     refute Memory.source_exists?("home", "test:nonexistent")
 
