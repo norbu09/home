@@ -4,6 +4,7 @@ This is a web application written using the Phoenix web framework.
 
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
 - Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
+- Container packaging lives in `Dockerfile` + `docker-compose.yml` (app + pgvector Postgres, migrations run on boot via `bin/server` in `rel/overlays/bin/`). Deps must not use sibling `path:` checkouts — pin github refs so the Docker build is self-contained. The opencode plugin is shipped at `integrations/opencode/recollect.ts`; keep it in sync with the memory API (`HomeWeb.MemoryController`)
 
 ## Agent memory (Recollect)
 
