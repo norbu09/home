@@ -8,8 +8,8 @@ This is a web application written using the Phoenix web framework.
 ## Agent memory (Recollect)
 
 Home hosts the local agent memory (replacing the retired local cognee instance,
-2026-09-03): Recollect (path dep `../recollect`, pgvector tables in Home.Repo)
-behind the `Home.Memory` facade.
+2026-09-03): Recollect (github pin `kittyfromouterspace/recollect`, pgvector
+tables in Home.Repo) behind the `Home.Memory` facade.
 
 - Facade: `lib/home/memory.ex` — `remember/2`, `search/2` (tier `:auto`,
   ILIKE fallback when embeddings are disabled), `health/0`, plus the Recollect
