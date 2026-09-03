@@ -47,22 +47,94 @@ gen() { # gen <bytes> — url-safe-ish random secret
 
 step "Checking prerequisites"
 
-COMPOSE=""
-if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-  COMPOSE="docker compose"
-elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
-  COMPOSE="podman compose"
-elif command -v podman-compose >/dev/null 2>&1; then
-  COMPOSE="podman-compose"
-elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE="docker-compose"
+# detect_os → prints an OS family: macos|debian|fedora|arch|suse|alpine|linux
+detect_os() {
+  case "$(uname -s)" in
+    Darwin) echo "macos"; return ;;
+  esac
+
+  if [ -r /etc/os-release ]; then
+    # shellcheck disable=SC1091
+    ids=$( . /etc/os-release; echo "${ID:-} ${ID_LIKE:-}" )
+    case "$ids" in
+      *debian*|*ubuntu*) echo "debian"; return ;;
+      *fedora*|*rhel*|*centos*) echo "fedora"; return ;;
+      *arch*) echo "arch"; return ;;
+      *suse*) echo "suse"; return ;;
+      *alpine*) echo "alpine"; return ;;
+    esac
+  fi
+  echo "linux"
+}
+
+# install_hint — OS-specific instructions for getting a container runtime
+# with compose support.
+install_hint() {
+  case "$(detect_os)" in
+    macos)
+      say "  Podman (recommended, free):"
+      say "    brew install podman podman-compose"
+      say "    podman machine init && podman machine start"
+      say "  or Docker Desktop:  brew install --cask docker"
+      say "  or colima:          brew install colima docker docker-compose && colima start" ;;
+    debian)
+      say "  Podman:   sudo apt install podman podman-compose"
+      say "  Docker:   sudo apt install docker.io docker-compose-v2" ;;
+    fedora)
+      say "  Podman:   sudo dnf install podman podman-compose"
+      say "  Docker:   sudo dnf install docker docker-compose && sudo systemctl enable --now docker" ;;
+    arch)
+      say "  Podman:   sudo pacman -S podman podman-compose"
+      say "  Docker:   sudo pacman -S docker docker-compose && sudo systemctl enable --now docker" ;;
+    suse)
+      say "  Podman:   sudo zypper install podman podman-compose"
+      say "  Docker:   sudo zypper install docker docker-compose && sudo systemctl enable --now docker" ;;
+    alpine)
+      say "  Podman:   apk add podman podman-compose"
+      say "  Docker:   apk add docker docker-cli-compose" ;;
+    *)
+      say "  Install Docker (https://docs.docker.com/engine/install/) with the compose"
+      say "  plugin, or Podman (https://podman.io) with podman-compose." ;;
+  esac
+}
+
+RUNTIME=""
+if command -v docker >/dev/null 2>&1; then RUNTIME="docker"
+elif command -v podman >/dev/null 2>&1; then RUNTIME="podman"
 fi
 
-if [ "$START" = 1 ] && [ -z "$COMPOSE" ]; then
-  say "No container runtime with compose support found."
-  say "Install docker (with the compose plugin) or podman (with podman-compose)."
-  say "Continuing with config only — pass --no-start next time to skip this warning."
-  START=0
+COMPOSE=""
+if [ -n "$RUNTIME" ]; then
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    COMPOSE="docker compose"
+  elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+    COMPOSE="podman compose"
+  elif command -v podman-compose >/dev/null 2>&1; then
+    COMPOSE="podman-compose"
+  elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE="docker-compose"
+  fi
+fi
+
+if [ -z "$RUNTIME" ]; then
+  say "No container runtime (docker/podman) found on this $(detect_os) system."
+  say "To install one:"
+  install_hint
+  if [ "$START" = 1 ]; then
+    say ""
+    say "Install a runtime, then re-run ./install.sh (or re-run with --no-start to"
+    say "write the config only and start the stack yourself later)."
+    exit 1
+  fi
+elif [ -z "$COMPOSE" ]; then
+  say "Found $RUNTIME, but no compose provider."
+  say "To add one:"
+  install_hint
+  if [ "$START" = 1 ]; then
+    say ""
+    say "Add a compose provider, then re-run ./install.sh."
+    exit 1
+  fi
 fi
 
 [ -n "$COMPOSE" ] && say "compose provider: $COMPOSE"

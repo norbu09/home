@@ -27,9 +27,11 @@ beyond the LLM providers you configure.
 ./install.sh
 ```
 
-The installer checks for a container runtime with compose support
-(docker/podman), generates all secrets, writes a mode-600 `.env`, offers to
-install the [opencode plugin](#use-from-opencode), and starts the stack.
+The installer detects your OS (macOS and the common Linux distro families)
+and prints the exact packages to install if a container runtime or compose
+provider is missing. It then generates all secrets, writes a mode-600 `.env`,
+offers to install the [opencode plugin](#use-from-opencode), and starts the
+stack.
 Flags: `--yes` (no prompts), `--no-start` (config only), `--force`
 (regenerate secrets), `--no-opencode`.
 
