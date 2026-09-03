@@ -1,0 +1,101 @@
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  active_nav={@active_nav}
+  secret_count={@secret_count}
+>
+  <.page_header
+    id="memory-header"
+    title="Agent Memory"
+    subtitle="Recollect-backed local memory, imported from Claude / Codex / OpenCode"
+  >
+    <:actions>
+      <button
+        id="memory-import-now"
+        class="cyber-icon-button"
+        phx-click="import_now"
+        disabled={@running?}
+        title="Run import now"
+        aria-label="Run import now"
+      >
+        <.icon
+          name={if @running?, do: "hero-arrow-path", else: "hero-play"}
+          class={["size-4", @running? && "animate-spin"]}
+        />
+      </button>
+    </:actions>
+  </.page_header>
+
+  <section id="memory-import-panel" class="cyber-panel intel-panel">
+    <header class="cyber-panel-header">
+      <div>
+        <h2>// Scheduled import</h2>
+        <p>Re-import coding-agent memory on a 24h cadence, scoped per project</p>
+      </div>
+      <span class="cyber-tag">{if @import_enabled, do: "ENABLED", else: "DISABLED"}</span>
+    </header>
+
+    <div class="p-4 flex items-center gap-4">
+      <button
+        id="memory-import-toggle"
+        phx-click="toggle_import"
+        role="switch"
+        aria-checked={to_string(@import_enabled)}
+        aria-label="Toggle scheduled memory import"
+        class={[
+          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+          if(@import_enabled, do: "bg-emerald-500", else: "bg-zinc-600")
+        ]}
+      >
+        <span class={[
+          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200",
+          if(@import_enabled, do: "translate-x-5", else: "translate-x-0")
+        ]} />
+      </button>
+      <span class="text-sm">
+        {if @import_enabled,
+          do: "Regular import is on — runs daily, plus on server boot.",
+          else: "Regular import is off — imports only run manually."}
+      </span>
+    </div>
+  </section>
+
+  <section id="memory-last-run" class="cyber-panel intel-panel mt-4">
+    <header class="cyber-panel-header">
+      <div>
+        <h2>// Last run</h2>
+        <p>Most recent import pass</p>
+      </div>
+      <%= if @running? do %>
+        <span class="cyber-tag">RUNNING</span>
+      <% end %>
+    </header>
+
+    <div class="p-4">
+      <%= cond do %>
+        <% @last_run == nil -> %>
+          <p id="memory-no-run" class="text-sm opacity-70">No import has run yet.</p>
+        <% true -> %>
+          <p id="memory-last-run-at" class="text-sm mb-3">
+            Finished {format_at(@last_run["at"])}
+          </p>
+          <div class="intel-columns service-columns">
+            <span>Source</span><span>Fetched</span><span>Stored</span><span>Skipped</span><span>Projects</span>
+          </div>
+          <div id="memory-last-run-rows">
+            <div
+              :for={{source, res} <- Enum.sort(@last_run["results"] || %{})}
+              id={"memory-run-#{source}"}
+              class="intel-row service-row"
+            >
+              <strong>{source}</strong>
+              <span>{res["fetched"]}</span>
+              <span>{res["stored"]}</span>
+              <span>{res["skipped"]}</span>
+              <code>{Enum.join(Map.keys(res["by_project"] || %{}), ", ")}</code>
+            </div>
+          </div>
+      <% end %>
+    </div>
+  </section>
+</Layouts.app>

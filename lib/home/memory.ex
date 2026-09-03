@@ -40,10 +40,23 @@ defmodule Home.Memory do
         entry_type: Keyword.get(opts, :entry_type, "note"),
         owner_id: owner_uuid(),
         scope_id: scope_uuid(scope),
+        source: Keyword.get(opts, :source, "agent"),
+        source_id: Keyword.get(opts, :source_id),
         tags: Keyword.get(opts, :tags, []),
         metadata: %{"scope" => scope, "source" => Keyword.get(opts, :source, "opencode")}
       )
     end
+  end
+
+  @doc "True when an entry with this source_id already exists in the scope."
+  def source_exists?(scope, source_id) do
+    import Ecto.Query
+
+    Home.Repo.exists?(
+      from(e in Recollect.Schema.Entry,
+        where: e.scope_id == ^scope_uuid(scope) and e.source_id == ^source_id
+      )
+    )
   end
 
   @doc """

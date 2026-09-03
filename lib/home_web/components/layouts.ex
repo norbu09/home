@@ -94,6 +94,13 @@ defmodule HomeWeb.Layouts do
             class="home-nav-item"
           />
           <.nav_item
+            href={~p"/memory"}
+            icon="hero-circle-stack"
+            label="Memory"
+            active={@active_nav == :memory}
+            class="home-nav-item"
+          />
+          <.nav_item
             href={~p"/services"}
             icon="hero-signal"
             label="Services"

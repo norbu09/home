@@ -23,6 +23,16 @@ behind the `Home.Memory` facade.
   `RECOLLECT_API_TOKEN`)
 - Retrieval-only read path by design (no LLM completion in search); no
   auto-capture of session output — explicit remember calls only
+- Import: `Home.Memory.Importer` (`lib/home/memory/importer.ex`) orchestrates
+  recollect's `Learner.CodingAgent` providers + `Sleep.distill/2` to import
+  Claude/Codex/OpenCode memory, one scope per project, deduped by
+  deterministic `import:<agent>:<scope>:<hash>` source_ids. CLI:
+  `mix home.memory.import [--dry-run] [--source X] [--no-llm]`
+- Regular re-import: `Home.Memory.ImportScheduler` (24h cadence), gated by
+  the `memory_import.enabled` setting (`Home.Settings`, home_settings table);
+  toggled from the `/memory` LiveView, which also shows the last run summary
+  and has a manual "import now" button. Scheduler broadcasts on the
+  `memory_import` PubSub topic
 
 ### Phoenix v1.8 guidelines
 

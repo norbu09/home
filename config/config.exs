@@ -24,8 +24,10 @@ config :recollect,
 
 config :home, :llm_usage_sweep_interval_ms, 60_000
 
+# cognee retired 2026-09-03 (replaced by Home.Memory / recollect, B-1368) —
+# the insight tracker stays disabled unless cognee comes back.
 config :home, :cognee_insights,
-  enabled: true,
+  enabled: false,
   endpoint: "http://127.0.0.1:8000",
   ui_endpoint: "http://localhost:3000",
   interval_ms: 15 * 60 * 1_000,
