@@ -130,6 +130,14 @@ defmodule HomeWeb.Layouts do
             active={@active_nav == :policies}
             class="home-nav-item"
           />
+          <.nav_label label="System" class="home-nav-label" />
+          <.nav_item
+            href={~p"/settings"}
+            icon="hero-cog-6-tooth"
+            label="Settings"
+            active={@active_nav == :settings}
+            class="home-nav-item"
+          />
         </nav>
       </:sidebar_nav>
 

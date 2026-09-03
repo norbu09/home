@@ -1,0 +1,50 @@
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  active_nav={@active_nav}
+  secret_count={@secret_count}
+>
+  <.page_header
+    id="settings-header"
+    title="Settings"
+    subtitle="App-wide switches for scheduled automation"
+  />
+
+  <section id="settings-automation" class="cyber-panel intel-panel">
+    <header class="cyber-panel-header">
+      <div>
+        <h2>// Automation</h2>
+        <p>Background jobs and their cadence</p>
+      </div>
+    </header>
+
+    <div class="p-4 flex items-center gap-4">
+      <button
+        id="settings-memory-import-toggle"
+        phx-click="toggle_memory_import"
+        role="switch"
+        aria-checked={to_string(@memory_import_enabled)}
+        aria-label="Toggle scheduled memory import"
+        class={[
+          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+          if(@memory_import_enabled, do: "bg-emerald-500", else: "bg-zinc-600")
+        ]}
+      >
+        <span class={[
+          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200",
+          if(@memory_import_enabled, do: "translate-x-5", else: "translate-x-0")
+        ]} />
+      </button>
+      <div class="text-sm">
+        <strong>Scheduled memory import</strong>
+        <p class="opacity-70">
+          Re-import Claude / Codex / OpenCode memory every 24 hours.
+          <%= if @running? do %>
+            <span class="cyber-tag">RUNNING</span>
+          <% end %>
+          <.link navigate={~p"/memory"} class="underline">Details on the Memory page</.link>
+        </p>
+      </div>
+    </div>
+  </section>
+</Layouts.app>
