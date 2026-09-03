@@ -3,7 +3,7 @@ defmodule Home.ActivityFocusTest do
 
   alias Home.ActivityFocus
 
-  test "merges router, Git, and Cognee names into one ranked workstream" do
+  test "merges router, Git, and memory names into one ranked workstream" do
     now = DateTime.utc_now()
 
     router = [
@@ -20,9 +20,9 @@ defmodule Home.ActivityFocusTest do
 
     git = [%{id: "ops_center", name: "Ops Center", commit_count: 3, latest_at: now}]
 
-    cognee = [
+    memory = [
       %{
-        dataset_name: "ocp-ops-center",
+        dataset_name: "ops_center",
         item_count: 50,
         recent_day_count: 4,
         recent_week_count: 8,
@@ -30,7 +30,7 @@ defmodule Home.ActivityFocusTest do
       }
     ]
 
-    assert [focus] = ActivityFocus.build(router, git, cognee)
+    assert [focus] = ActivityFocus.build(router, git, memory)
     assert focus.id == "ops_center"
     assert focus.signal_count == 3
     assert focus.router_calls == 12

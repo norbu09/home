@@ -4,9 +4,9 @@ defmodule Home.Memory.ImportScheduler do
   gated by the `memory_import.enabled` switch in `Home.Settings` (toggled
   from the `/memory` UI).
 
-  Follows the `Home.Cognee.InsightTracker` pattern: initial delay, then a
-  self-rescheduling `Process.send_after/3` loop. Results are broadcast on
-  the `memory_import` PubSub topic so the LiveView updates live.
+  Pattern: initial delay, then a self-rescheduling `Process.send_after/3`
+  loop. Results are broadcast on the `memory_import` PubSub topic so the
+  LiveView updates live.
   """
 
   use GenServer

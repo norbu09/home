@@ -85,7 +85,7 @@
           </p>
         </div>
         <div class="project-signal-channel">
-          <span>COGNEE MEMORY</span><strong>{@memory_total} records</strong><p>
+          <span>RECOLLECT MEMORY</span><strong>{@memory_total} records</strong><p>
             +{@memory_day} in 24h · +{@memory_week} in 7d · {@memory_latest}
           </p>
         </div>
@@ -200,19 +200,17 @@
     >
       <header class="cyber-panel-header">
         <div>
-          <h2>// Cognee knowledge</h2><p>Matching datasets and ingestion activity</p>
+          <h2>// Memory knowledge</h2><p>Recollect scope entries and ingestion activity</p>
         </div><a
-          href={@cognee_graph_url}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={@memory_url}
           class="cyber-icon-button"
-          title="Open Cognee knowledge graph"
-          aria-label="Open Cognee knowledge graph"
+          title="Open agent memory console"
+          aria-label="Open agent memory console"
         ><.icon name="hero-share" class="size-3" /></a>
       </header>
       <div id="project-memory-stream" phx-update="stream" class="project-memory-list">
         <div :if={@memory_empty?} id="project-memory-empty" class="tactical-empty">
-          <.icon name="hero-circle-stack" class="size-5" /><span>No matching Cognee dataset</span>
+          <.icon name="hero-circle-stack" class="size-5" /><span>No matching memory scope</span>
         </div>
         <a
           :for={{id, area} <- @streams.memory_areas}

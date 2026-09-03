@@ -2,7 +2,7 @@ defmodule HomeWeb.ProjectLive do
   @moduledoc "Per-project LLM usage and routing controls."
   use HomeWeb, :live_view
 
-  alias Home.Cognee.InsightTracker
+  alias Home.Memory.Insights
   alias Home.GitActivity
   alias Home.LLMProxy.{ProviderCatalog, UsageTracker}
   alias Home.Secrets.Store
@@ -13,7 +13,7 @@ defmodule HomeWeb.ProjectLive do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Home.PubSub, "llm_usage")
-      Phoenix.PubSub.subscribe(Home.PubSub, "cognee_insights")
+      Phoenix.PubSub.subscribe(Home.PubSub, Home.Memory.ImportScheduler.topic())
     end
 
     {:ok,
@@ -34,7 +34,7 @@ defmodule HomeWeb.ProjectLive do
     {:noreply, load_project(socket, socket.assigns.project_id)}
   end
 
-  def handle_info(:cognee_insights_updated, socket) do
+  def handle_info({:memory_import_finished, _results}, socket) do
     {:noreply, load_project(socket, socket.assigns.project_id)}
   end
 
@@ -87,7 +87,7 @@ defmodule HomeWeb.ProjectLive do
     commits = if(git_project, do: git_project.commits, else: [])
 
     memory_areas =
-      InsightTracker.snapshot().areas
+      Insights.areas()
       |> Enum.filter(&(memory_project_id(&1.dataset_name) == normalize_project(project)))
 
     memory_rows = Enum.map(memory_areas, &memory_row/1)
@@ -115,7 +115,7 @@ defmodule HomeWeb.ProjectLive do
     |> assign(:memory_day, memory_day)
     |> assign(:memory_week, memory_week)
     |> assign(:memory_latest, relative_timestamp(latest_memory_activity(memory_areas)))
-    |> assign(:cognee_graph_url, cognee_ui_url("/knowledge-graph"))
+    |> assign(:memory_url, "/memory")
     |> assign(:commits_empty?, commits == [])
     |> assign(:memory_empty?, memory_rows == [])
     |> assign(:models_empty?, models == [])
@@ -200,23 +200,13 @@ defmodule HomeWeb.ProjectLive do
   defp memory_row(area) do
     %{
       id: area.dataset_id,
-      name: area.dataset_name |> String.replace_prefix("ocp-", "") |> String.replace("-", " "),
+      name: area.dataset_name |> String.replace("-", " "),
       records: compact(area.item_count),
       day: area.recent_day_count,
       week: area.recent_week_count,
       latest: relative_timestamp(area.latest_activity_at),
-      url: cognee_ui_url("/datasets/#{area.dataset_id}")
+      url: "/memory"
     }
-  end
-
-  defp cognee_ui_url(path) do
-    endpoint =
-      :home
-      |> Application.get_env(:cognee_insights, [])
-      |> Keyword.get(:ui_endpoint, "http://localhost:3000")
-      |> String.trim_trailing("/")
-
-    endpoint <> path
   end
 
   defp daily_rows([]), do: []
@@ -274,7 +264,7 @@ defmodule HomeWeb.ProjectLive do
   end
 
   defp memory_project_id(name) do
-    name |> String.replace_prefix("ocp-", "") |> normalize_project()
+    normalize_project(name)
   end
 
   defp latest_memory_activity(areas) do

@@ -14,8 +14,8 @@ defmodule HomeWeb.OverviewLiveTest do
     assert has_element?(view, "#commit-history")
     assert has_element?(view, "#refresh-git-activity")
     assert has_element?(view, "#personal-goals")
-    assert has_element?(view, "#cognee-insights")
-    assert has_element?(view, "#refresh-cognee-insights")
+    assert has_element?(view, "#memory-insights")
+    assert has_element?(view, "#refresh-memory-insights")
   end
 
   test "creates and completes a personal goal", %{conn: conn} do

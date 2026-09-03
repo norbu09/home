@@ -195,28 +195,30 @@
       </div>
     </section>
 
-    <section id="cognee-insights" class="cyber-panel tactical-panel tactical-insights">
+    <section id="memory-insights" class="cyber-panel tactical-panel tactical-insights">
       <header class="cyber-panel-header">
         <div>
-          <h2>// Cognee insights</h2><p>Memory signals promoted into tactical context</p>
+          <h2>// Memory insights</h2><p>
+            Recollect memory signals promoted into tactical context
+          </p>
         </div>
         <div class="insight-header-actions">
-          <span class={["cyber-status-label", @cognee_status != :ready && "is-idle"]}>{cognee_status(
-            @cognee_status,
-            @cognee_dataset_count
+          <span class={["cyber-status-label", @memory_status != :ready && "is-idle"]}>{memory_status_label(
+            @memory_status,
+            @memory_scope_count
           )}</span>
           <button
-            id="refresh-cognee-insights"
+            id="refresh-memory-insights"
             class="cyber-icon-button"
-            phx-click="refresh_cognee_insights"
-            title="Refresh Cognee insights"
-            aria-label="Refresh Cognee insights"
+            phx-click="refresh_memory_insights"
+            title="Refresh memory insights"
+            aria-label="Refresh memory insights"
           ><.icon name="hero-arrow-path" class="size-3" /></button>
         </div>
       </header>
       <div id="insight-stream" phx-update="stream" class="insight-list">
         <div :if={@insights_empty?} id="insights-empty" class="tactical-empty insight-empty">
-          <.icon name="hero-circle-stack" class="size-5" /><strong>Insight channel ready</strong><span>Cognee dataset activity will be summarized after the next scan.</span>
+          <.icon name="hero-circle-stack" class="size-5" /><strong>Insight channel ready</strong><span>Recollect memory activity will be summarized after the next import.</span>
         </div>
         <article :for={{id, insight} <- @streams.insights} id={id} class="insight-row">
           <span>{insight_badge(insight)}</span><div>

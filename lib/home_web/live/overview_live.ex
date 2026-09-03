@@ -3,8 +3,8 @@ defmodule HomeWeb.OverviewLive do
   use HomeWeb, :live_view
 
   alias Home.{ActivityFocus, GitActivity}
-  alias Home.Cognee.InsightTracker
   alias Home.LLMProxy.UsageTracker
+  alias Home.Memory.Insights
   alias Home.Secrets.Store
   alias Home.Tactical
 
@@ -14,7 +14,7 @@ defmodule HomeWeb.OverviewLive do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Home.PubSub, "llm_usage")
-      Phoenix.PubSub.subscribe(Home.PubSub, "cognee_insights")
+      Phoenix.PubSub.subscribe(Home.PubSub, Home.Memory.ImportScheduler.topic())
     end
 
     {:ok,
@@ -29,8 +29,12 @@ defmodule HomeWeb.OverviewLive do
   @impl true
   def handle_info(:llm_usage_updated, socket), do: {:noreply, load_focus(socket)}
 
-  def handle_info(:cognee_insights_updated, socket) do
+  def handle_info({:memory_import_finished, _results}, socket) do
     {:noreply, socket |> load_insights() |> load_focus()}
+  end
+
+  def handle_info(:memory_import_started, socket) do
+    {:noreply, assign(socket, :memory_status, :syncing)}
   end
 
   @impl true
@@ -64,9 +68,8 @@ defmodule HomeWeb.OverviewLive do
     {:noreply, load_tactical_items(socket)}
   end
 
-  def handle_event("refresh_cognee_insights", _params, socket) do
-    InsightTracker.refresh()
-    {:noreply, assign(socket, :cognee_status, :syncing)}
+  def handle_event("refresh_memory_insights", _params, socket) do
+    {:noreply, load_insights(socket)}
   end
 
   def handle_event("refresh_git_activity", _params, socket) do
@@ -84,9 +87,9 @@ defmodule HomeWeb.OverviewLive do
 
   defp load_focus(socket) do
     snapshot = UsageTracker.snapshot()
-    cognee = InsightTracker.snapshot()
 
-    focuses = ActivityFocus.build(snapshot.projects, socket.assigns.git_projects, cognee.areas)
+    focuses =
+      ActivityFocus.build(snapshot.projects, socket.assigns.git_projects, memory_areas())
 
     socket
     |> assign(:snapshot, snapshot)
@@ -119,15 +122,19 @@ defmodule HomeWeb.OverviewLive do
   end
 
   defp load_insights(socket) do
-    cognee = InsightTracker.snapshot()
-    insights = cognee.insights ++ Tactical.list_insights()
+    areas = memory_areas()
+    insights = Insights.build(areas) ++ Tactical.list_insights()
 
     socket
     |> assign(:insights_empty?, insights == [])
-    |> assign(:cognee_status, cognee.status)
-    |> assign(:cognee_dataset_count, cognee.dataset_count)
+    |> assign(:memory_status, memory_status(areas))
+    |> assign(:memory_scope_count, length(areas))
     |> stream(:insights, insights, reset: true)
   end
+
+  # Scopes that hold any entries — cached per render; the query is a cheap
+  # aggregate over recollect_entries.
+  defp memory_areas, do: Insights.areas()
 
   defp goal_form do
     to_form(%{"title" => "", "notes" => "", "due_on" => "", "priority" => 2}, as: :goal)
@@ -149,13 +156,15 @@ defmodule HomeWeb.OverviewLive do
   defp money(value), do: "$" <> :erlang.float_to_binary(value * 1.0, decimals: 2)
   defp due_date(nil), do: "NO DEADLINE"
   defp due_date(value), do: Calendar.strftime(value, "%d %b")
-  defp insight_badge(%{source: "cognee", signal: signal}), do: String.upcase(signal)
+  defp insight_badge(%{source: "recollect", signal: signal}), do: String.upcase(signal)
   defp insight_badge(insight), do: "P#{insight.priority}"
 
-  defp cognee_status(:ready, count), do: "#{count} AREAS SYNCED"
-  defp cognee_status(:syncing, _count), do: "SCANNING"
-  defp cognee_status(:unavailable, _count), do: "COGNEE OFFLINE"
-  defp cognee_status(_, _count), do: "AWAITING SIGNAL"
+  defp memory_status([]), do: :idle
+  defp memory_status(_areas), do: :ready
+
+  defp memory_status_label(:ready, count), do: "#{count} SCOPES TRACKED"
+  defp memory_status_label(:syncing, _count), do: "IMPORTING"
+  defp memory_status_label(_, _count), do: "AWAITING SIGNAL"
 
   defp focus_summary(focus) do
     [

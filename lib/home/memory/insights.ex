@@ -1,11 +1,49 @@
-defmodule Home.Cognee.Insights do
-  @moduledoc "Derives tactical signals from Cognee dataset activity."
+defmodule Home.Memory.Insights do
+  @moduledoc """
+  Derives tactical signals from the local Recollect memory store —
+  the replacement for the retired Cognee insights (B-1368).
 
-  def build([], _previous), do: []
+  `areas/0` reports per-scope stats in the same shape the tactical UI
+  consumed from Cognee (`dataset_id`, `dataset_name`, `item_count`,
+  `recent_day_count`, `recent_week_count`, `latest_activity_at`), sourced
+  from `recollect_entries` grouped by the scope name in metadata.
 
-  def build(stats, previous) do
+  `build/1` turns those stats into insight rows (growth leader, largest
+  memory, freshest context, coverage).
+  """
+
+  import Ecto.Query
+
+  alias Home.Repo
+  alias Recollect.Schema.Entry
+
+  @doc """
+  Per-scope activity stats, shaped like the old Cognee dataset stats so
+  `Home.ActivityFocus` and the LiveViews need no shape changes.
+  """
+  def areas do
+    day_ago = DateTime.add(DateTime.utc_now(), -86_400, :second)
+    week_ago = DateTime.add(DateTime.utc_now(), -7 * 86_400, :second)
+
+    Entry
+    |> group_by([e], fragment("metadata->>'scope'"))
+    |> select([e], %{
+      dataset_id: fragment("metadata->>'scope'"),
+      dataset_name: fragment("metadata->>'scope'"),
+      item_count: count(e.id),
+      recent_day_count: filter(count(e.id), e.inserted_at > ^day_ago),
+      recent_week_count: filter(count(e.id), e.inserted_at > ^week_ago),
+      latest_activity_at: max(e.inserted_at)
+    })
+    |> Repo.all()
+  end
+
+  @doc "Tactical insight rows derived from `areas/0` stats."
+  def build([]), do: []
+
+  def build(stats) do
     [
-      growth_insight(stats, previous),
+      growth_insight(stats),
       largest_insight(stats),
       activity_insight(stats),
       coverage_insight(stats)
@@ -13,31 +51,13 @@ defmodule Home.Cognee.Insights do
     |> Enum.reject(&is_nil/1)
   end
 
-  defp growth_insight(stats, previous) do
-    growth =
-      Enum.map(stats, fn stat ->
-        prior_count =
-          previous
-          |> Map.get(stat.dataset_id, %{item_count: stat.item_count})
-          |> Map.get(:item_count)
-
-        Map.put(stat, :growth, max(stat.item_count - prior_count, 0))
-      end)
-
+  defp growth_insight(stats) do
     leader =
-      Enum.max_by(growth, &{&1.growth, &1.recent_day_count, &1.recent_week_count}, fn -> nil end)
+      Enum.max_by(stats, &{&1.recent_day_count, &1.recent_week_count}, fn -> nil end)
 
     cond do
       is_nil(leader) ->
         nil
-
-      leader.growth > 0 ->
-        insight(
-          "growth",
-          "Growth leader: #{display_name(leader.dataset_name)}",
-          "Added #{leader.growth} memory records since the last scan; #{leader.item_count} records are now indexed.",
-          1
-        )
 
       leader.recent_day_count > 0 ->
         insight(
@@ -66,7 +86,7 @@ defmodule Home.Cognee.Insights do
     insight(
       "scale",
       "Largest memory: #{display_name(largest.dataset_name)}",
-      "#{largest.item_count} records, #{percent(largest.item_count, total_items(stats))}% of all indexed Cognee material.",
+      "#{largest.item_count} records, #{percent(largest.item_count, total_items(stats))}% of all indexed Recollect material.",
       2
     )
   end
@@ -89,40 +109,22 @@ defmodule Home.Cognee.Insights do
   end
 
   defp coverage_insight(stats) do
-    duplicates =
-      stats
-      |> Enum.group_by(&normalized_name(&1.dataset_name))
-      |> Enum.find(fn {_name, entries} -> length(entries) > 1 end)
-
-    case duplicates do
-      {_name, entries} ->
-        names = entries |> Enum.map(& &1.dataset_name) |> Enum.sort() |> Enum.join(" and ")
-
-        insight(
-          "overlap",
-          "Dataset overlap detected",
-          "#{names} normalize to the same area; consider consolidating them to avoid split recall.",
-          1
-        )
-
-      nil ->
-        insight(
-          "coverage",
-          "Memory coverage",
-          "#{length(stats)} knowledge areas hold #{total_items(stats)} indexed records across Cognee.",
-          3
-        )
-    end
+    insight(
+      "coverage",
+      "Memory coverage",
+      "#{length(stats)} knowledge areas hold #{total_items(stats)} indexed records across Recollect.",
+      3
+    )
   end
 
   defp insight(signal, title, notes, priority) do
     %{
-      id: "cognee-#{signal}",
+      id: "recollect-#{signal}",
       signal: signal,
       title: title,
       notes: notes,
       priority: priority,
-      source: "cognee"
+      source: "recollect"
     }
   end
 
@@ -132,17 +134,9 @@ defmodule Home.Cognee.Insights do
 
   defp display_name(name) do
     name
-    |> String.replace_prefix("ocp-", "")
-    |> String.replace("-", " ")
+    |> String.replace(~r/[-_]+/, " ")
     |> String.split()
     |> Enum.map_join(" ", &String.capitalize/1)
-  end
-
-  defp normalized_name(name) do
-    name
-    |> String.replace_prefix("ocp-", "")
-    |> String.downcase()
-    |> String.replace(~r/[^a-z0-9]/, "")
   end
 
   defp relative_time(datetime) do

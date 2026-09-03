@@ -1,11 +1,11 @@
 defmodule Home.ActivityFocus do
-  @moduledoc "Aggregates router, Git, and Cognee activity into ranked workstreams."
+  @moduledoc "Aggregates router, Git, and memory activity into ranked workstreams."
 
-  def build(router_projects, git_projects, cognee_areas) do
+  def build(router_projects, git_projects, memory_areas) do
     %{}
     |> add_router(router_projects)
     |> add_git(git_projects)
-    |> add_cognee(cognee_areas)
+    |> add_memory(memory_areas)
     |> Map.values()
     |> Enum.filter(&active?/1)
     |> Enum.map(&finalize/1)
@@ -43,9 +43,9 @@ defmodule Home.ActivityFocus do
     end)
   end
 
-  defp add_cognee(focuses, areas) do
+  defp add_memory(focuses, areas) do
     Enum.reduce(areas, focuses, fn area, acc ->
-      id = area.dataset_name |> String.replace_prefix("ocp-", "") |> normalize()
+      id = normalize(area.dataset_name)
 
       memory_activity =
         if(area.recent_day_count > 0, do: area.recent_day_count, else: area.recent_week_count)
@@ -104,7 +104,6 @@ defmodule Home.ActivityFocus do
 
   defp display_name(name) do
     name
-    |> String.replace_prefix("ocp-", "")
     |> String.replace(~r/[-_]+/, " ")
     |> String.split()
     |> Enum.map_join(" ", &String.capitalize/1)
