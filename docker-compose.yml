@@ -23,7 +23,6 @@ services:
     environment:
       DATABASE_URL: ecto://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-home_prod}
       PHX_HOST: ${PHX_HOST:-localhost}
-      PORT: ${PORT:-4070}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Set SECRET_KEY_BASE in .env}
       CLOAK_KEY: ${CLOAK_KEY:?Set CLOAK_KEY in .env}
       TOKEN_SIGNING_SECRET: ${TOKEN_SIGNING_SECRET:?Set TOKEN_SIGNING_SECRET in .env}
@@ -41,6 +40,24 @@ services:
     #   - ~/.codex:/home/agent/.codex:ro
     #   - ~/.local/share/opencode:/home/agent/.local/share/opencode:ro
     #   - ~/code:/home/agent/code:ro
+
+  backup:
+    image: docker.io/pgvector/pgvector:pg17
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      PGDATABASE: ${POSTGRES_DB:-home_prod}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./docker/backup.sh:/backup.sh:ro
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "/backup.sh"]
 
 volumes:
   pgdata:

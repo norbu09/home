@@ -41,3 +41,4 @@ npm-debug.log
 
 # Local secrets for docker compose (never commit)
 .env
+backups/

@@ -50,8 +50,36 @@ The app container runs database migrations on boot, then serves on
 | `PHX_HOST` | no (localhost) | public host for absolute URLs |
 | `MEMORY_API_TOKEN` | no | bearer token for the memory API (else set `memory/api_token` in Crypto Keys) |
 
-### Importing your local agent history (optional)
+## Backups
 
+The compose stack includes a `backup` sidecar that dumps the database with
+`pg_dump` (custom format) into `./backups/` — daily by default, keeping 14
+days of dumps (`BACKUP_INTERVAL_SECONDS`, `BACKUP_KEEP_DAYS` in `.env`).
+The first dump runs at container start, so `./backups/` should contain a
+`home-*.dump` file within a minute of `compose up`.
+
+**Restore** into a running stack:
+
+```sh
+cat backups/home-YYYYMMDDTHHMMSSZ.dump | docker compose exec -T db \
+  pg_restore -U postgres -d home_prod --clean --if-exists --no-owner --no-privileges
+```
+
+**Critical:** the dump alone is not a full backup. The Crypto Keys store is
+encrypted with `CLOAK_KEY`, so **back up your `.env` (especially
+`CLOAK_KEY`) separately** — without it, restored secrets are unrecoverable.
+For real disaster recovery, also copy `./backups/` off the machine (rsync,
+rclone, restic, …) — the sidecar only protects against database loss, not
+host loss.
+
+Manual one-off dump (works for non-container installs too, given a reachable
+Postgres):
+
+```sh
+pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL" > home-$(date -u +%Y%m%dT%H%M%SZ).dump
+```
+
+### Importing your local agent history (optional)
 The memory importer reads Claude Code / Codex / OpenCode stores from the
 container's `$HOME`. To give it your real history, uncomment the read-only
 volume mounts in `docker-compose.yml`, then enable the scheduled import on
