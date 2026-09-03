@@ -38,3 +38,6 @@ npm-debug.log
 
 # Serena agent workspace
 .serena/
+
+# Local secrets for docker compose (never commit)
+.env

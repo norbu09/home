@@ -86,7 +86,11 @@ defmodule Home.MixProject do
        depth: 1},
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
-      {:agentic, path: "../agentic", runtime: false},
+      # Pinned git ref so builds (incl. Docker) don't need sibling checkouts.
+      {:agentic,
+       github: "kittyfromouterspace/agentic",
+       ref: "836ffd64d654fe1a2261f894243a35b9417da91d",
+       runtime: false},
       # Pinned git ref (overrides the hex pin agentic declares transitively) —
       # home's memory integration (Home.Memory) relies on recollect features
       # landed after the last hex release (B-1363..B-1367 + opencode schema fix).

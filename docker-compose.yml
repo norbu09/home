@@ -1,0 +1,46 @@
+services:
+  db:
+    image: docker.io/pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-home_prod}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-home_prod}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ecto://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-home_prod}
+      PHX_HOST: ${PHX_HOST:-localhost}
+      PORT: ${PORT:-4070}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Set SECRET_KEY_BASE in .env}
+      CLOAK_KEY: ${CLOAK_KEY:?Set CLOAK_KEY in .env}
+      TOKEN_SIGNING_SECRET: ${TOKEN_SIGNING_SECRET:?Set TOKEN_SIGNING_SECRET in .env}
+      # Optional: bearer token for the memory HTTP API (/api/memory/*).
+      # Without it, set the token via the Crypto Keys UI (service: memory, key: api_token).
+      MEMORY_API_TOKEN: ${MEMORY_API_TOKEN:-}
+    ports:
+      - "${PORT:-4070}:4070"
+    # Optional: mount local coding-agent stores read-only so the memory
+    # importer (/settings switch or `home eval "Home.Memory.Importer.run()"`)
+    # can pick up Claude Code / Codex / OpenCode history, and the overview can
+    # show git activity for your checkouts. Uncomment and adjust:
+    # volumes:
+    #   - ~/.claude:/home/agent/.claude:ro
+    #   - ~/.codex:/home/agent/.codex:ro
+    #   - ~/.local/share/opencode:/home/agent/.local/share/opencode:ro
+    #   - ~/code:/home/agent/code:ro
+
+volumes:
+  pgdata:

@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+cd -P -- "$(dirname -- "$0")"
+
+# Run migrations on boot so a fresh `docker compose up` is self-contained.
+./home eval "Home.Release.migrate()"
+
+PHX_SERVER=true exec ./home start
