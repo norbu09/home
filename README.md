@@ -10,8 +10,10 @@ app that sits on your machine (or home server) and gives you:
   [Recollect](https://github.com/kittyfromouterspace/recollect) (Postgres +
   pgvector). Agents store and recall lessons over a small HTTP API; a
   scheduled import picks up Claude Code / Codex / OpenCode history, scoped
-  per project. Manage it from the **Memory** page and toggle the import on
-  the **Settings** page.
+  per project. Works with **opencode** (plugin), **Claude Code**, and
+  **Codex** (both via the MCP endpoint) — see the setup sections below.
+  Manage it from the **Memory** page and toggle the import on the
+  **Settings** page.
 - **Tactical Overview** — a dashboard that merges LLM usage, git activity,
   and memory signals into ranked "what was I working on" focus areas, plus
   personal goals.
@@ -122,9 +124,12 @@ same bearer token as the REST API — tools: `memory_remember`,
 `memory_search`, `memory_health`):
 
 ```sh
-claude mcp add --transport http home-memory http://127.0.0.1:4070/mcp \
+claude mcp add --scope user --transport http home-memory http://127.0.0.1:4070/mcp \
   --header "Authorization: Bearer $RECOLLECT_API_TOKEN"
 ```
+
+(`--scope user` makes it available in every project; without it the server is
+only registered for the directory you run the command in.)
 
 For automatic recall at the start of every session, install the SessionStart
 hook (`./install.sh` offers to do this): it searches memory for the current
@@ -152,20 +157,45 @@ and exits silently when home is unreachable, so it never blocks a session.
 
 ## Use from Codex
 
-Codex reaches the same MCP endpoint via its streamable-HTTP client
-(`~/.codex/config.toml`):
+Codex (≥ 0.4x, streamable-HTTP MCP is built in) reaches the same `/mcp`
+endpoint:
+
+```sh
+codex mcp add home-memory --url http://127.0.0.1:4070/mcp \
+  --bearer-token-env-var RECOLLECT_API_TOKEN
+```
+
+which writes this to `~/.codex/config.toml`:
 
 ```toml
-experimental_use_rmcp_client = true
-
-[mcp_servers.home_memory]
+[mcp_servers.home-memory]
 url = "http://127.0.0.1:4070/mcp"
 bearer_token_env_var = "RECOLLECT_API_TOKEN"
 ```
 
-Add a line to the project's `AGENTS.md` telling the agent to call
-`memory_search` at task start and `memory_remember` for durable lessons —
-Codex has no session-start hook, so the instruction is the recall trigger.
+If you run Codex non-interactively (`codex exec`, approval policy `never`),
+MCP tools need explicit auto-approval or every call is blocked:
+
+```toml
+[mcp_servers.home-memory.tools.memory_search]
+approval_mode = "approve"
+
+[mcp_servers.home-memory.tools.memory_remember]
+approval_mode = "approve"
+
+[mcp_servers.home-memory.tools.memory_health]
+approval_mode = "approve"
+```
+
+Codex has no session-start hook, so add the recall trigger to
+`~/.codex/AGENTS.md` (global) or a project's `AGENTS.md`:
+
+```markdown
+You have a `home-memory` MCP server: call `memory_search` (scope = the
+current project directory name, or `shared`) at the start of a task, and
+`memory_remember` when you learn something worth keeping across sessions.
+Never store secrets or tokens.
+```
 
 ## Local setup (without Docker)
 

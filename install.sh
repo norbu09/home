@@ -216,7 +216,7 @@ if [ "$OPENCODE" = 1 ] && [ -d "$HOME/.claude" ]; then
   fi
   say ""
   say "Claude Code MCP (remember/search tools):"
-  say "  claude mcp add --transport http home-memory http://127.0.0.1:${PORT:-4070}/mcp \\"
+  say "  claude mcp add --scope user --transport http home-memory http://127.0.0.1:${PORT:-4070}/mcp \\"
   say "    --header \"Authorization: Bearer \$RECOLLECT_API_TOKEN\""
 fi
 
