@@ -11,6 +11,14 @@ defmodule Home.MemoryTest do
     assert entry.scope_id == Memory.scope_uuid("home")
   end
 
+  test "canonicalizes legacy fallback scopes to shared" do
+    {:ok, entry} = Memory.remember("legacy fallback scope probe", scope: "unknown")
+
+    assert entry.scope_id == Memory.scope_uuid("shared")
+    assert entry.metadata["scope"] == "shared"
+    assert Memory.scope_uuid("unknown") == Memory.scope_uuid("shared")
+  end
+
   test "search/2 finds entries in the scope" do
     {:ok, _} = Memory.remember("unique purple giraffe keyword", scope: "home")
 

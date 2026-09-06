@@ -38,6 +38,9 @@ defmodule HomeWeb.ProjectLive do
     {:noreply, load_project(socket, socket.assigns.project_id)}
   end
 
+  def handle_info(:memory_import_started, socket), do: {:noreply, socket}
+  def handle_info(:memory_import_failed, socket), do: {:noreply, socket}
+
   @impl true
   def handle_event("refresh", _params, socket) do
     {:noreply, load_project(socket, socket.assigns.project_id)}

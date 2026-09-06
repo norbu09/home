@@ -538,6 +538,7 @@ defmodule Home.LLMProxy.UsageTracker do
   defp normalize_tool(tool) do
     case tool |> to_string() |> String.trim() |> String.downcase() do
       "" -> nil
+      "cognee" -> "memory"
       tool -> tool
     end
   end

@@ -63,8 +63,18 @@ defmodule HomeWeb.ProjectLiveTest do
   test "shows a configured tool catalog on the tools project", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/router/projects/tools")
 
-    assert has_element?(view, "#project-tool-stream [id$='cognee']")
+    assert has_element?(view, "#project-tool-stream [id$='memory']", "MEMORY")
     assert has_element?(view, "#project-tool-breakdown", "Routed tool catalog")
     refute has_element?(view, "#project-tools-empty")
+  end
+
+  test "stays live while a memory import runs", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/router/projects/tools")
+
+    send(view.pid, :memory_import_started)
+    assert has_element?(view, "#project-memory-activity")
+
+    send(view.pid, :memory_import_failed)
+    assert has_element?(view, "#project-memory-activity")
   end
 end

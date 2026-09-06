@@ -32,7 +32,7 @@ defmodule HomeWeb.RouterLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/router")
 
-    assert has_element?(view, "#tools-cognee")
+    assert has_element?(view, "#tools-memory", "Memory")
   end
 
   test "toggles project request access", %{conn: conn} do

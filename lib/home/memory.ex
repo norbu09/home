@@ -34,7 +34,7 @@ defmodule Home.Memory do
     if possible_secret?(content) do
       {:error, :possible_secret}
     else
-      scope = Keyword.get(opts, :scope, @default_scope)
+      scope = normalize_scope(Keyword.get(opts, :scope, @default_scope))
       source = normalize_source(Keyword.get(opts, :source, "agent"))
 
       Recollect.Knowledge.remember(content,
@@ -59,6 +59,8 @@ defmodule Home.Memory do
   def source_exists?(scope, source_id) do
     import Ecto.Query
 
+    scope = normalize_scope(scope)
+
     Home.Repo.exists?(
       from(e in Recollect.Schema.Entry,
         where: e.scope_id == ^scope_uuid(scope) and e.source_id == ^source_id
@@ -75,7 +77,7 @@ defmodule Home.Memory do
   uses).
   """
   def search(query, opts \\ []) when is_binary(query) do
-    scope = Keyword.get(opts, :scope, @default_scope)
+    scope = normalize_scope(Keyword.get(opts, :scope, @default_scope))
 
     if Recollect.Config.embedding_enabled?() do
       do_search(query, scope, opts)
@@ -191,8 +193,20 @@ defmodule Home.Memory do
 
   # ── Internals ───────────────────────────────────────────────────────────
 
-  @doc "Deterministic UUID for a human scope name (md5-based, UUIDv3-style)."
+  @doc "Canonical human scope name used by every memory surface."
+  def normalize_scope(scope) when scope in [nil, ""], do: @default_scope
+
+  def normalize_scope(scope) when is_binary(scope) do
+    case String.trim(scope) do
+      "" -> @default_scope
+      "unknown" -> @default_scope
+      scope -> scope
+    end
+  end
+
+  @doc "Deterministic UUID for a canonical human scope name (md5-based, UUIDv3-style)."
   def scope_uuid(scope) when is_binary(scope) do
+    scope = normalize_scope(scope)
     <<a::48, _::4, b::12, _::2, c::62>> = :crypto.hash(:md5, scope)
     {:ok, uuid} = Ecto.UUID.load(<<a::48, 3::4, b::12, 2::2, c::62>>)
     uuid

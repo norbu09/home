@@ -34,7 +34,7 @@ defmodule Home.Memory.ImportScheduler do
   def init(_opts) do
     if enabled?(), do: Process.send_after(self(), :tick, config(:initial_delay_ms, 60_000))
 
-    {:ok, %{running?: false, last_result: nil, last_run_at: nil}}
+    {:ok, %{running?: false, task: nil, last_result: nil, last_run_at: nil}}
   end
 
   @impl true

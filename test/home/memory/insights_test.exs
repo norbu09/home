@@ -16,6 +16,19 @@ defmodule Home.Memory.InsightsTest do
     assert %DateTime{} = home.latest_activity_at
   end
 
+  test "areas/0 presents legacy unknown metadata as shared memory" do
+    {:ok, entry} = Memory.remember("legacy insights scope probe", scope: "shared")
+
+    entry
+    |> Ecto.Changeset.change(metadata: %{"scope" => "unknown", "source" => "agent"})
+    |> Repo.update!()
+
+    areas = Insights.areas()
+
+    refute Enum.any?(areas, &(&1.dataset_name == "unknown"))
+    assert Enum.any?(areas, &(&1.dataset_name == "shared"))
+  end
+
   test "build/1 derives insight rows from stats" do
     now = DateTime.utc_now()
 

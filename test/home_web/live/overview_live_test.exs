@@ -18,6 +18,16 @@ defmodule HomeWeb.OverviewLiveTest do
     assert has_element?(view, "#refresh-memory-insights")
   end
 
+  test "recovers the memory status when an import fails", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    send(view.pid, :memory_import_started)
+    assert has_element?(view, "#memory-insights", "IMPORTING")
+
+    send(view.pid, :memory_import_failed)
+    refute has_element?(view, "#memory-insights", "IMPORTING")
+  end
+
   test "creates and completes a personal goal", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 

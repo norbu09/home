@@ -37,6 +37,10 @@ defmodule HomeWeb.OverviewLive do
     {:noreply, assign(socket, :memory_status, :syncing)}
   end
 
+  def handle_info(:memory_import_failed, socket) do
+    {:noreply, load_insights(socket)}
+  end
+
   @impl true
   def handle_event("toggle_form", %{"kind" => "goal"}, socket) do
     {:noreply, assign(socket, :show_goal_form, !socket.assigns.show_goal_form)}

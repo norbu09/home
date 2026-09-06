@@ -358,12 +358,12 @@ config :home, :llm_projects, %{
 }
 
 config :home, :llm_tools, %{
-  "cognee" => %{name: "Cognee", category: "memory"}
+  "memory" => %{name: "Memory", category: "memory"}
 }
 
 config :home, :llm_tool_model_attribution, %{
-  "cognee-chat" => "cognee",
-  "openai/background-free" => "cognee"
+  "cognee-chat" => "memory",
+  "openai/background-free" => "memory"
 }
 
 config :ex_money,

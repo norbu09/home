@@ -71,7 +71,7 @@ defmodule Home.LLMProxy.UsageTrackerTest do
     assert {:ok, 0} = UsageTracker.flush()
   end
 
-  test "tracks tool usage as a separate aggregate dimension" do
+  test "maps legacy Cognee attribution to the internal memory tool" do
     assert :ok =
              UsageTracker.record(%{
                project: "tools",
@@ -84,7 +84,7 @@ defmodule Home.LLMProxy.UsageTrackerTest do
              })
 
     snapshot = UsageTracker.snapshot()
-    tool = Enum.find(snapshot.tools, &(&1.id == "cognee"))
+    tool = Enum.find(snapshot.tools, &(&1.id == "memory"))
     project = Enum.find(snapshot.projects, &(&1.id == "tools"))
 
     assert tool.calls == 1
@@ -99,7 +99,7 @@ defmodule Home.LLMProxy.UsageTrackerTest do
     details = UsageTracker.project_details("tools")
 
     assert %{calls: 0, models: [], provider_count: 0} =
-             Enum.find(details.tools, &(&1.id == "cognee"))
+             Enum.find(details.tools, &(&1.id == "memory"))
   end
 
   test "applies a project default model only to chat routes" do

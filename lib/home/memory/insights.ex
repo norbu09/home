@@ -25,11 +25,27 @@ defmodule Home.Memory.Insights do
     day_ago = DateTime.add(DateTime.utc_now(), -86_400, :second)
     week_ago = DateTime.add(DateTime.utc_now(), -7 * 86_400, :second)
 
-    Entry
-    |> group_by([e], fragment("metadata->>'scope'"))
+    scoped_entries =
+      from e in Entry,
+        select: %{
+          id: e.id,
+          inserted_at: e.inserted_at,
+          scope:
+            type(
+              fragment(
+                "COALESCE(NULLIF(NULLIF(?->>'scope', ''), 'unknown'), 'shared')",
+                e.metadata
+              ),
+              :string
+            )
+        }
+
+    scoped_entries
+    |> subquery()
+    |> group_by([e], e.scope)
     |> select([e], %{
-      dataset_id: fragment("metadata->>'scope'"),
-      dataset_name: fragment("metadata->>'scope'"),
+      dataset_id: e.scope,
+      dataset_name: e.scope,
       item_count: count(e.id),
       recent_day_count: filter(count(e.id), e.inserted_at > ^day_ago),
       recent_week_count: filter(count(e.id), e.inserted_at > ^week_ago),

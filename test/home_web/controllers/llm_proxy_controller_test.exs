@@ -135,7 +135,7 @@ defmodule HomeWeb.LLMProxyControllerTest do
     assert json_response(conn, 200)
     snapshot = Home.LLMProxy.UsageTracker.snapshot()
     project = Enum.find(snapshot.projects, &(&1.id == "tools"))
-    tool = Enum.find(snapshot.tools, &(&1.id == "cognee"))
+    tool = Enum.find(snapshot.tools, &(&1.id == "memory"))
 
     assert project.calls == 1
     assert tool.calls == 1
@@ -150,7 +150,7 @@ defmodule HomeWeb.LLMProxyControllerTest do
 
     assert json_response(conn, 200)
     details = Home.LLMProxy.UsageTracker.project_details("tools")
-    tool = Enum.find(details.tools, &(&1.id == "cognee"))
+    tool = Enum.find(details.tools, &(&1.id == "memory"))
 
     assert details.month.calls == 1
     assert tool.calls == 1
