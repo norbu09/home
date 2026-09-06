@@ -14,8 +14,35 @@ defmodule HomeWeb.OverviewLiveTest do
     assert has_element?(view, "#commit-history")
     assert has_element?(view, "#refresh-git-activity")
     assert has_element?(view, "#personal-goals")
+    assert has_element?(view, "#morning-brief")
     assert has_element?(view, "#memory-insights")
     assert has_element?(view, "#refresh-memory-insights")
+  end
+
+  test "renders the latest completed brief in the morning panel", %{conn: conn} do
+    prompt =
+      Home.Brief.create_prompt!(%{
+        name: "Spec Overview Brief",
+        slug: "spec-overview-brief",
+        schedule: %{"at" => "08:00"},
+        system_prompt: "s",
+        user_prompt: "u",
+        priority: 10
+      })
+
+    {:ok, brief} =
+      Home.Brief.create(%{
+        prompt_id: prompt.id,
+        status: "completed",
+        summary: "Overview summary",
+        outcome: "Overview outcome"
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#brief-latest")
+    assert view |> element("#brief-latest") |> render() =~ "Overview summary"
+    assert view |> element("#brief-latest") |> render() =~ ~p"/briefs/spec-overview-brief"
   end
 
   test "recovers the memory status when an import fails", %{conn: conn} do

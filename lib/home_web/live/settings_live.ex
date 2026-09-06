@@ -6,6 +6,8 @@ defmodule HomeWeb.SettingsLive do
   """
   use HomeWeb, :live_view
 
+  alias Home.Brief
+  alias Home.Brief.Scheduler
   alias Home.Memory.ImportScheduler
   alias Home.Secrets.Store
   alias Home.Settings
@@ -16,6 +18,7 @@ defmodule HomeWeb.SettingsLive do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Home.PubSub, ImportScheduler.topic())
+      Phoenix.PubSub.subscribe(Home.PubSub, Brief.topic())
     end
 
     {:ok,
@@ -33,13 +36,31 @@ defmodule HomeWeb.SettingsLive do
     {:noreply, assign(socket, :memory_import_enabled, enabled)}
   end
 
+  def handle_event("toggle_brief_scheduler", _params, socket) do
+    enabled = !socket.assigns.brief_enabled
+    {:ok, _} = Settings.put_bool("brief_scheduler.enabled", enabled)
+    {:noreply, assign(socket, :brief_enabled, enabled)}
+  end
+
+  def handle_event("brief_run_now", _params, socket) do
+    _ = Scheduler.fire_now()
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:memory_import_finished, _results}, socket),
     do: {:noreply, assign_state(socket)}
 
   def handle_info(:memory_import_started, socket), do: {:noreply, assign(socket, :running?, true)}
   def handle_info(:memory_import_failed, socket), do: {:noreply, assign(socket, :running?, false)}
+
+  def handle_info({:briefs_updated, _kind, _brief}, socket), do: {:noreply, assign_state(socket)}
+  def handle_info({:brief_completed, _brief}, socket), do: {:noreply, assign_state(socket)}
+  def handle_info({:brief_failed, _brief, _reason}, socket), do: {:noreply, assign_state(socket)}
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  defp money(nil), do: "—"
+  defp money(value), do: "$" <> :erlang.float_to_binary(value * 1.0, decimals: 2)
 
   defp assign_state(socket) do
     status =
@@ -49,9 +70,20 @@ defmodule HomeWeb.SettingsLive do
         :exit, _ -> %{running?: false}
       end
 
+    scheduler =
+      try do
+        Scheduler.status()
+      catch
+        :exit, _ -> %{running?: false}
+      end
+
     socket
     |> assign(:active_nav, :settings)
     |> assign(:memory_import_enabled, Settings.get_bool("memory_import.enabled", false))
     |> assign(:running?, Map.get(status, :running?, false))
+    |> assign(:brief_enabled, Settings.get_bool("brief_scheduler.enabled", false))
+    |> assign(:brief_running?, Map.get(scheduler, :running?, false))
+    |> assign(:brief_stats, Brief.stats())
+    |> assign(:brief_next_run, Brief.next_run())
   end
 end

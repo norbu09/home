@@ -3,6 +3,7 @@ defmodule HomeWeb.OverviewLive do
   use HomeWeb, :live_view
 
   alias Home.{ActivityFocus, GitActivity}
+  alias Home.Brief
   alias Home.LLMProxy.UsageTracker
   alias Home.Memory.Insights
   alias Home.Secrets.Store
@@ -15,6 +16,7 @@ defmodule HomeWeb.OverviewLive do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Home.PubSub, "llm_usage")
       Phoenix.PubSub.subscribe(Home.PubSub, Home.Memory.ImportScheduler.topic())
+      Phoenix.PubSub.subscribe(Home.PubSub, Brief.topic())
     end
 
     {:ok,
@@ -40,6 +42,10 @@ defmodule HomeWeb.OverviewLive do
   def handle_info(:memory_import_failed, socket) do
     {:noreply, load_insights(socket)}
   end
+
+  def handle_info({:briefs_updated, _kind, _brief}, socket), do: {:noreply, load_briefs(socket)}
+  def handle_info({:brief_completed, _brief}, socket), do: {:noreply, load_briefs(socket)}
+  def handle_info({:brief_failed, _brief, _why}, socket), do: {:noreply, load_briefs(socket)}
 
   @impl true
   def handle_event("toggle_form", %{"kind" => "goal"}, socket) do
@@ -87,6 +93,21 @@ defmodule HomeWeb.OverviewLive do
     |> load_git_activity()
     |> load_focus()
     |> load_tactical_items()
+    |> load_briefs()
+  end
+
+  defp load_briefs(socket) do
+    today = Brief.list_today()
+
+    latest =
+      today
+      |> Enum.filter(&(&1.status == "completed"))
+      |> Enum.max_by(& &1.completed_at, fn -> nil end)
+
+    socket
+    |> assign(:brief_latest, latest)
+    |> assign(:brief_stats, Brief.stats())
+    |> assign(:briefs_empty?, latest == nil)
   end
 
   defp load_focus(socket) do

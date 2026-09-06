@@ -1033,6 +1033,16 @@
 .insight-row > span { color: var(--cyber-magenta); font-size: 8px; }
 .insight-row strong { color: var(--cyber-text-strong); font-size: 9px; }
 .insight-row p { margin-top: 5px; color: var(--cyber-muted); font-size: 8px; line-height: 1.6; }
+.brief-insight-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 12px;
+}
+.brief-row-link { text-decoration: none; transition: background 120ms ease; }
+.brief-row-link:hover { background: color-mix(in srgb, var(--cyber-line) 40%, transparent); }
+.brief-row-link:hover .brief-chevron { color: var(--cyber-amber); transform: translateX(2px); }
+.brief-chevron { color: var(--cyber-muted); transition: transform 120ms ease, color 120ms ease; }
 
 .intel-summary { grid-template-columns: repeat(2, minmax(0, 240px)); }
 .intel-panel { overflow-x: auto; }

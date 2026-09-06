@@ -17,6 +17,7 @@ defmodule Home.Application do
       Home.LLMProxy.UsageTracker,
       Home.LLMProxy.ModelRouteRefresher,
       Home.Memory.ImportScheduler,
+      Home.Brief.Scheduler,
       Hermes.Server.Registry,
       # start: true — hermes only auto-starts the transport when it detects a
       # running HTTP server, which is false under `mix test` (server: false).

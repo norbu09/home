@@ -1,0 +1,240 @@
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  active_nav={@active_nav}
+  secret_count={@secret_count}
+>
+  <.page_header
+    id="briefs-header"
+    title="Morning Brief"
+    subtitle="daily intelligence · BRF queue"
+  >
+    <:actions>
+      <span class="text-xs text-base-content/40 tracking-widest uppercase flex items-center gap-2">
+        <span class={[
+          "size-1.5 rounded-full",
+          @scheduler_running? && "bg-success animate-pulse",
+          !@scheduler_running? && "bg-base-content/30"
+        ]} />
+        {if @scheduler_running?, do: "generating…", else: "idle"}
+      </span>
+    </:actions>
+  </.page_header>
+
+  <%!-- Stats bar --%>
+  <section id="briefs-stats" class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+    <div class="stat stat-compact bg-base-200/40 rounded-lg">
+      <div class="stat-title text-xs">Open</div>
+      <div class="stat-value text-2xl text-primary">{@stats.open}</div>
+    </div>
+    <div class="stat stat-compact bg-base-200/40 rounded-lg">
+      <div class="stat-title text-xs">Reviewed</div>
+      <div class="stat-value text-2xl">{@stats.reviewed}</div>
+    </div>
+    <div class="stat stat-compact bg-base-200/40 rounded-lg">
+      <div class="stat-title text-xs">Failed</div>
+      <div class="stat-value text-2xl text-error">{@stats.failed}</div>
+    </div>
+    <div class="stat stat-compact bg-base-200/40 rounded-lg">
+      <div class="stat-title text-xs">Today's cost</div>
+      <div class="stat-value text-2xl">{usd(@stats.cost_today)}</div>
+    </div>
+    <div class="stat stat-compact bg-base-200/40 rounded-lg">
+      <div class="stat-title text-xs">Scheduler</div>
+      <div class="stat-value text-2xl">
+        <.icon
+          name={if @scheduler_enabled, do: "hero-check-circle", else: "hero-x-circle"}
+          class={["size-7", !@scheduler_enabled && "text-base-content/30"]}
+        />
+      </div>
+    </div>
+  </section>
+
+  <%= if @detail_mode do %>
+    <%!-- Detail / deep-dive --%>
+    <section id="briefs-detail" class="cyber-panel intel-panel">
+      <header class="cyber-panel-header">
+        <h2 class="text-sm font-bold tracking-widest uppercase">
+          {if @brief, do: String.upcase(@brief.prompt.name)}
+        </h2>
+        <span class="text-xs text-base-content/40">
+          {if @brief, do: "#{@brief.number} · #{format_time(@brief.completed_at)}"}
+        </span>
+      </header>
+      <div class="p-4 space-y-4">
+        <%= if @brief do %>
+          <.full_brief_card
+            brief={@current_brief || @brief}
+            interactive={true}
+            form={@discussion_form}
+            pending_response={@pending_response}
+          />
+        <% else %>
+          <div class="text-sm text-base-content/40 py-8 text-center">
+            No briefs for this prompt yet.
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% else %>
+    <%!-- Execution health --%>
+    <section id="briefs-health" class="cyber-panel intel-panel mb-6">
+      <header class="cyber-panel-header">
+        <h2 class="text-sm font-bold tracking-widest uppercase">Execution health</h2>
+        <span class="text-xs text-base-content/40">last 30 days</span>
+      </header>
+      <div class="p-4 space-y-1">
+        <%= if @brief_insights == [] do %>
+          <div class="text-sm text-base-content/40 py-4 text-center">No historical runs yet.</div>
+        <% else %>
+          <div class="hidden sm:grid grid-cols-[1fr_60px_60px_80px_90px] text-xs tracking-widest uppercase text-base-content/40 mb-1">
+            <div>Prompt</div>
+            <div class="text-right">Runs</div>
+            <div class="text-right">Failed</div>
+            <div class="text-right">Avg cost</div>
+            <div class="text-right">Last run</div>
+          </div>
+          <%= for row <- @brief_insights do %>
+            <div class="grid grid-cols-[1fr_60px_60px_80px_90px] items-center text-sm py-1 border-b border-base-200/40">
+              <div class="min-w-0 truncate">
+                <span class="font-medium">{row.prompt.name}</span>
+              </div>
+              <div class="text-right">{row.runs}</div>
+              <div class={["text-right", row.failed > 0 && "text-error"]}>{row.failed}</div>
+              <div class="text-right">{usd(row.avg_cost_usd)}</div>
+              <div class="text-right text-xs text-base-content/50">
+                {if row.last_completed_at,
+                  do: Calendar.strftime(DateTime.to_date(row.last_completed_at), "%d %b")}
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </section>
+
+    <%!-- Queue / meeting --%>
+    <section id="briefs-queue" class="cyber-panel intel-panel mb-6">
+      <header class="cyber-panel-header">
+        <h2 class="text-sm font-bold tracking-widest uppercase">
+          {if @meeting_active, do: "Morning meeting", else: "Today's briefs"}
+        </h2>
+        <span class="text-xs text-base-content/40">{pipeline_label(@briefs)}</span>
+      </header>
+
+      <div class="p-4">
+        <%= if @meeting_active && @current_brief do %>
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-xs tracking-widest uppercase text-base-content/50">
+              {meeting_progress(@brief_index, @briefs)}
+            </div>
+            <button id="meeting-end" class="btn btn-xs btn-ghost" phx-click="end_meeting">
+              End meeting
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 mb-4">
+            <%= for {brief, idx} <- Enum.with_index(meeting_briefs(@briefs)) do %>
+              <span class={[
+                "size-2 rounded-full",
+                idx == @brief_index && "bg-primary",
+                idx < @brief_index && "bg-success/60",
+                idx > @brief_index && "bg-base-content/20"
+              ]} />
+            <% end %>
+          </div>
+
+          <.full_brief_card
+            brief={@current_brief}
+            interactive={true}
+            form={@discussion_form}
+            pending_response={@pending_response}
+          />
+
+          <div class="flex flex-wrap gap-2 mt-6 border-t border-base-200/60 pt-4">
+            <button
+              id="meeting-advance"
+              class="btn btn-sm btn-success"
+              phx-click="advance_brief"
+            >
+              <.icon name="hero-check-circle" class="size-4" /> Approve & Next
+            </button>
+            <button id="meeting-skip" class="btn btn-sm btn-ghost" phx-click="skip_brief">
+              <.icon name="hero-forward" class="size-4" /> Skip
+            </button>
+            <button
+              id="meeting-dismiss"
+              class="btn btn-sm btn-error btn-outline"
+              phx-click="dismiss_brief"
+            >
+              <.icon name="hero-x-mark" class="size-4" /> Dismiss
+            </button>
+          </div>
+        <% else %>
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+            <div class="text-sm text-base-content/60">
+              {meeting_briefs(@briefs) |> length() |> Integer.to_string()} briefs ready for the meeting
+            </div>
+            <div class="flex gap-2">
+              <button
+                id="briefs-start-meeting"
+                class="btn btn-primary btn-sm"
+                phx-click="start_meeting"
+                disabled={meeting_briefs(@briefs) == []}
+              >
+                <.icon name="hero-play" class="size-4" /> Begin Morning Meeting
+              </button>
+            </div>
+          </div>
+
+          <div id="briefs-today" class="divide-y divide-base-200/60">
+            <%= if @briefs == [] do %>
+              <div class="text-sm text-base-content/40 py-6 text-center">
+                No briefs yet today — the scheduler hasn't fired or it's disabled.
+              </div>
+            <% end %>
+            <%= for brief <- @briefs do %>
+              <.brief_card_row brief={brief} />
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <%!-- Past briefs --%>
+    <section id="briefs-history" class="cyber-panel intel-panel">
+      <header class="cyber-panel-header">
+        <h2 class="text-sm font-bold tracking-widest uppercase">Past briefs</h2>
+      </header>
+      <div class="p-4">
+        <%= if map_size(@past_briefs) == 0 do %>
+          <div class="text-sm text-base-content/40 py-4 text-center">No history yet.</div>
+        <% else %>
+          <div class="space-y-4">
+            <%= for {date, list} <- @past_briefs |> Enum.sort(fn {a, _}, {b, _} -> Date.compare(a, b) == :gt end) do %>
+              <div>
+                <div class="text-xs tracking-widest uppercase text-base-content/40 mb-1">
+                  {Calendar.strftime(date, "%a %d %b")}
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <%= for brief <- Enum.sort_by(list, & &1.inserted_at) do %>
+                    <.link
+                      href={~p"/briefs/#{brief.prompt.slug}"}
+                      class={[
+                        "btn btn-xs btn-ghost gap-1",
+                        brief.status == "failed" && "text-error",
+                        brief.status == "reviewed" && "text-success"
+                      ]}
+                    >
+                      <span class={["size-1.5 rounded-full", status_dot(brief.status)]} />
+                      {brief.prompt.name}
+                    </.link>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</Layouts.app>

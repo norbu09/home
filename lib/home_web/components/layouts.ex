@@ -101,6 +101,14 @@ defmodule HomeWeb.Layouts do
             class="home-nav-item"
           />
           <.nav_item
+            href={~p"/briefs"}
+            icon="hero-sun"
+            label="Briefs"
+            active={@active_nav == :briefs}
+            meta="04"
+            class="home-nav-item"
+          />
+          <.nav_item
             href={~p"/services"}
             icon="hero-signal"
             label="Services"

@@ -47,4 +47,80 @@
       </div>
     </div>
   </section>
+
+  <section id="settings-brief" class="cyber-panel intel-panel">
+    <header class="cyber-panel-header">
+      <div>
+        <h2>// Daily Brief</h2>
+        <p>Scheduled morning intelligence runs</p>
+      </div>
+    </header>
+
+    <div class="p-4">
+      <div class="flex items-center gap-4">
+        <button
+          id="settings-brief-toggle"
+          phx-click="toggle_brief_scheduler"
+          role="switch"
+          aria-checked={to_string(@brief_enabled)}
+          aria-label="Toggle scheduled briefs"
+          class={[
+            "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+            if(@brief_enabled, do: "bg-emerald-500", else: "bg-zinc-600")
+          ]}
+        >
+          <span class={[
+            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200",
+            if(@brief_enabled, do: "translate-x-5", else: "translate-x-0")
+          ]} />
+        </button>
+        <div class="text-sm">
+          <strong>Scheduled briefs</strong>
+          <p class="opacity-70">
+            Generate BRF-XXXX briefs at each prompt's schedule each morning.
+            <%= if @brief_running? do %>
+              <span class="cyber-tag">RUNNING</span>
+            <% end %>
+          </p>
+        </div>
+        <button
+          id="settings-brief-run-now"
+          class="btn btn-sm btn-ghost ml-auto"
+          phx-click="brief_run_now"
+        >
+          <.icon name="hero-play" class="size-3" /> Run now
+        </button>
+      </div>
+
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+        <div class="bg-base-200/30 rounded-lg p-3">
+          <div class="text-xs tracking-widest uppercase text-base-content/40">Next run</div>
+          <div class="font-medium mt-1">
+            <%= if @brief_next_run do %>
+              {@brief_next_run.at |> Calendar.strftime("%H:%M")} UTC
+              <%= if @brief_next_run.next_day do %>
+                <span class="text-base-content/40">· tomorrow</span>
+              <% end %>
+              <span class="text-base-content/40">· {@brief_next_run.prompt.name}</span>
+            <% else %>
+              No scheduled prompts
+            <% end %>
+          </div>
+        </div>
+        <div class="bg-base-200/30 rounded-lg p-3">
+          <div class="text-xs tracking-widest uppercase text-base-content/40">Today</div>
+          <div class="font-medium mt-1">
+            {@brief_stats.completed} completed · {@brief_stats.running} running · {@brief_stats.failed} failed
+          </div>
+        </div>
+        <div class="bg-base-200/30 rounded-lg p-3 flex items-end justify-between">
+          <div>
+            <div class="text-xs tracking-widest uppercase text-base-content/40">Cost today</div>
+            <div class="font-medium mt-1">{money(@brief_stats.cost_today)}</div>
+          </div>
+          <.link navigate={~p"/briefs"} class="underline text-sm opacity-70">Open Briefs</.link>
+        </div>
+      </div>
+    </div>
+  </section>
 </Layouts.app>

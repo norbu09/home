@@ -81,6 +81,8 @@ defmodule HomeWeb.Router do
       live "/router/projects/:project", ProjectLive, :show
       live "/crypto-keys", CryptoKeysLive, :index
       live "/memory", MemoryLive, :index
+      live "/briefs", BriefLive, :index
+      live "/briefs/:slug", BriefLive, :detail
       live "/settings", SettingsLive, :index
       live "/services", IntelLive, :services
       live "/providers", IntelLive, :providers

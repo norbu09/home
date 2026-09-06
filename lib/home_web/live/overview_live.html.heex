@@ -195,6 +195,47 @@
       </div>
     </section>
 
+    <section id="morning-brief" class="cyber-panel tactical-panel tactical-insights">
+      <header class="cyber-panel-header">
+        <div>
+          <h2>// Morning brief</h2><p>
+            Today's scheduled intelligence runs
+          </p>
+        </div>
+        <div class="insight-header-actions">
+          <span class={["cyber-status-label", @briefs_empty? && "is-idle"]}>
+            {@brief_stats.completed} done · {@brief_stats.running} running
+          </span>
+          <.link
+            href={~p"/briefs"}
+            class="cyber-icon-button"
+            title="Open Briefs"
+            aria-label="Open Briefs"
+          >
+            <.icon name="hero-arrow-top-right-on-square" class="size-3" />
+          </.link>
+        </div>
+      </header>
+      <div id="brief-stream" class="insight-list">
+        <div :if={@briefs_empty?} id="brief-empty" class="tactical-empty insight-empty">
+          <.icon name="hero-sun" class="size-5" /><strong>Queue idle</strong><span>Monday–Friday the scheduler generates briefs each morning.</span>
+        </div>
+        <.link
+          :if={@brief_latest}
+          href={~p"/briefs/#{@brief_latest.prompt.slug}"}
+          id="brief-latest"
+          class="insight-row brief-insight-row brief-row-link"
+        >
+          <span>{(@brief_latest.outcome || "") |> String.slice(0, 40)}</span>
+          <div>
+            <strong>{@brief_latest.prompt.name}</strong>
+            <p>{@brief_latest.summary || @brief_latest.outcome}</p>
+          </div>
+          <div class="brief-chevron"><.icon name="hero-chevron-right" class="size-3" /></div>
+        </.link>
+      </div>
+    </section>
+
     <section id="memory-insights" class="cyber-panel tactical-panel tactical-insights">
       <header class="cyber-panel-header">
         <div>

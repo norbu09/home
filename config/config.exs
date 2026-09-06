@@ -24,6 +24,11 @@ config :recollect,
 
 config :home, :llm_usage_sweep_interval_ms, 60_000
 
+config :home, :brief_scheduler,
+  enabled: false,
+  initial_delay_ms: 60_000,
+  max_concurrency: 5
+
 config :home, :git_activity,
   root: "/home/lenz/code",
   lookback_days: 7,
@@ -354,6 +359,7 @@ config :home, :llm_projects, %{
   "mark_mesh" => %{name: "Mark Mesh", quota_usd: 70.0},
   "local_foundation" => %{name: "Local Foundation", quota_usd: 80.0},
   "tools" => %{name: "Tools", quota_usd: 0.0},
+  "briefs" => %{name: "Briefs", quota_usd: 0.0},
   "sandbox" => %{name: "Sandbox", quota_usd: 20.0, enabled: false}
 }
 
