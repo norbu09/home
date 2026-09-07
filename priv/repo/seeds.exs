@@ -83,6 +83,7 @@ prompts = [
     schedule: %{"at" => "08:15"},
     run_weekends: false,
     priority: 40,
+    metadata: %{"dispatch" => "agent_forge"},
     system_prompt: """
     You are an infrastructure operations analyst. Review the current
     state of all services, deployments, and health checks. Identify:

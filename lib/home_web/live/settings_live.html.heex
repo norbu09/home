@@ -123,4 +123,112 @@
       </div>
     </div>
   </section>
+
+  <section id="settings-forge" class="cyber-panel intel-panel">
+    <header class="cyber-panel-header">
+      <div>
+        <h2>// Forge connection</h2>
+        <p>Agent-forge dispatch for infrastructure briefs</p>
+      </div>
+    </header>
+
+    <div class="p-4">
+      <div class="flex items-center gap-4">
+        <button
+          id="settings-forge-toggle"
+          phx-click="toggle_agent_forge"
+          role="switch"
+          aria-checked={to_string(@agent_forge_enabled)}
+          aria-label="Toggle dispatch to agent-forge"
+          class={[
+            "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+            if(@agent_forge_enabled, do: "bg-emerald-500", else: "bg-zinc-600")
+          ]}
+        >
+          <span class={[
+            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200",
+            if(@agent_forge_enabled, do: "translate-x-5", else: "translate-x-0")
+          ]} />
+        </button>
+        <div class="text-sm">
+          <strong>Dispatch infrastructure briefs</strong>
+          <p class="opacity-70">
+            Run dispatch-flagged briefs against the ops_center agent instead of the local LLM.
+            <%= if @agent_forge_token_present? do %>
+              <span id="settings-forge-token-status" class="cyber-tag">TOKEN STORED</span>
+            <% else %>
+              <span id="settings-forge-token-status" class="cyber-tag text-amber-400">NO TOKEN</span>
+            <% end %>
+          </p>
+        </div>
+      </div>
+
+      <.form
+        for={
+          %{
+            "base_url" => @agent_forge_base_url,
+            "project" => @agent_forge_project,
+            "specialty" => @agent_forge_specialty
+          }
+        }
+        as={:config}
+        id="settings-forge-config"
+        phx-submit="save_agent_forge_config"
+        class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3"
+      >
+        <.input
+          id="agent_forge_base_url"
+          type="text"
+          name="config[base_url]"
+          label="Base URL"
+          value={@agent_forge_base_url}
+          placeholder="https://forge.kfos.nz"
+        />
+        <.input
+          id="agent_forge_project"
+          type="text"
+          name="config[project]"
+          label="Project"
+          value={@agent_forge_project}
+          placeholder="ops_center"
+        />
+        <.input
+          id="agent_forge_specialty"
+          type="text"
+          name="config[specialty]"
+          label="Specialty"
+          value={@agent_forge_specialty}
+          placeholder="ops"
+        />
+        <button
+          type="submit"
+          id="settings-forge-save"
+          class="btn btn-sm btn-ghost self-end justify-self-start"
+        >
+          <.icon name="hero-check" class="size-3" /> Save connection
+        </button>
+      </.form>
+
+      <.form
+        for={%{"value" => ""}}
+        as={:token}
+        id="settings-forge-token"
+        phx-submit="save_agent_forge_token"
+        class="mt-4 flex items-end gap-3"
+      >
+        <.input
+          id="agent_forge_token"
+          type="password"
+          name="token[value]"
+          label="Bearer token"
+          value=""
+          placeholder="agent_forge/webhook_token"
+          autocomplete="off"
+        />
+        <button type="submit" id="settings-forge-token-save" class="btn btn-sm btn-ghost">
+          <.icon name="hero-lock-closed" class="size-3" /> Store token
+        </button>
+      </.form>
+    </div>
+  </section>
 </Layouts.app>

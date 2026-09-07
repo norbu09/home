@@ -7,6 +7,7 @@ defmodule Home.Brief.Runner do
   `error` with status `failed` — the scheduler never auto-retries.
   """
 
+  alias Home.AgentForge.Client
   alias Home.Brief
   alias Home.Brief.{Conversation, Prompt}
   alias Home.LLMProxy
@@ -18,6 +19,34 @@ defmodule Home.Brief.Runner do
   """
   @spec run(Prompt.t(), Conversation.t()) :: {:ok, Conversation.t()} | {:error, term()}
   def run(%Prompt{} = prompt, %Conversation{} = brief) do
+    result =
+      if dispatch?(prompt) do
+        run_dispatch(prompt, brief)
+      else
+        run_llm(prompt, brief)
+      end
+
+    case result do
+      {:ok, updated} ->
+        {:ok, updated}
+
+      {:error, reason} ->
+        now = DateTime.utc_now()
+        error_message = human_error(reason)
+
+        {:ok, failed} =
+          Brief.update_brief(brief, %{
+            status: "failed",
+            error: error_message,
+            completed_at: now
+          })
+
+        {:error, {failed, error_message}}
+    end
+  end
+
+  # LLM path: a single text call through the local proxy. Used by most briefs.
+  defp run_llm(prompt, brief) do
     messages = build_messages(prompt, brief)
 
     with {:ok, response} <- call_llm(messages, prompt.model),
@@ -42,20 +71,55 @@ defmodule Home.Brief.Runner do
         {:error, _} = error ->
           error
       end
-    else
-      {:error, reason} ->
-        now = DateTime.utc_now()
-        error_message = human_error(reason)
-
-        {:ok, failed} =
-          Brief.update_brief(brief, %{
-            status: "failed",
-            error: error_message,
-            completed_at: now
-          })
-
-        {:error, {failed, error_message}}
     end
+  end
+
+  # Agent-forge dispatch path: an infrastructure brief hands the sweep to a
+  # real agent (via the daemon's /jobs + /api/runs), and its report becomes
+  # the brief outcome. Still non-agentic from Home's perspective — one
+  # enqueue + a bounded poll, no tool-use loop in the brief runtime.
+  defp run_dispatch(prompt, brief) do
+    with {:ok, %{report: report, run: run}} <- dispatch(prompt),
+         {:ok, parsed} <- parse_response(report) do
+      result =
+        Brief.update_brief(brief, %{
+          status: "completed",
+          outcome: report,
+          summary: parsed.summary,
+          next_steps: parsed.next_steps,
+          completed_at: DateTime.utc_now(),
+          model_used: "agent_forge",
+          cost_usd: 0.0,
+          metadata: %{
+            "dispatch" => "agent_forge",
+            "job_id" => run["run_id"],
+            "branch" => run["branch"]
+          }
+        })
+
+      case result do
+        {:ok, updated} ->
+          Brief.add_message(brief, "assistant", report)
+          remember_brief(updated, prompt)
+          {:ok, updated}
+
+        {:error, _} = error ->
+          error
+      end
+    end
+  end
+
+  @doc "True when a prompt should be run by dispatching to agent-forge."
+  def dispatch?(%Prompt{} = prompt) do
+    get_in(prompt.metadata, ["dispatch"]) == "agent_forge"
+  end
+
+  defp dispatch(prompt) do
+    Client.fleet_sweep_report(
+      goal: prompt.user_prompt || "Run a fleet-status sweep.",
+      source_id: "brief:#{prompt.slug}",
+      max_actions: 120
+    )
   end
 
   @doc "Build the LLM messages for a prompt, resolving template variables."

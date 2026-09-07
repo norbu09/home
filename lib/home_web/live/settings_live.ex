@@ -11,6 +11,7 @@ defmodule HomeWeb.SettingsLive do
   alias Home.Memory.ImportScheduler
   alias Home.Secrets.Store
   alias Home.Settings
+  alias Home.AgentForge.Client
 
   on_mount {HomeWeb.LiveUserAuth, :live_user_optional}
 
@@ -45,6 +46,43 @@ defmodule HomeWeb.SettingsLive do
   def handle_event("brief_run_now", _params, socket) do
     _ = Scheduler.fire_now()
     {:noreply, socket}
+  end
+
+  def handle_event("toggle_agent_forge", _params, socket) do
+    enabled = !socket.assigns.agent_forge_enabled
+    {:ok, _} = Settings.put_bool("agent_forge.enabled", enabled)
+    {:noreply, assign(socket, :agent_forge_enabled, enabled)}
+  end
+
+  def handle_event("save_agent_forge_config", %{"config" => params}, socket) do
+    with {:ok, _} <- Settings.put("agent_forge.base_url", String.trim(params["base_url"] || "")),
+         {:ok, _} <- Settings.put("agent_forge.project", String.trim(params["project"] || "")),
+         {:ok, _} <- Settings.put("agent_forge.specialty", String.trim(params["specialty"] || "")) do
+      {:noreply, put_flash(socket, :info, "Forge connection updated")}
+    else
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to update Forge connection")}
+    end
+  end
+
+  def handle_event("save_agent_forge_token", %{"token" => params}, socket) do
+    value = String.trim(params["value"] || "")
+
+    if value == "" do
+      {:noreply, put_flash(socket, :error, "Token value is required")}
+    else
+      case Store.put("agent_forge", "webhook_token", value,
+             description: "Forge webhook bearer token"
+           ) do
+        {:ok, _secret} ->
+          {:noreply,
+           socket
+           |> assign(:agent_forge_token_present?, true)
+           |> put_flash(:info, "Token stored // encrypted at rest")}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to store token")}
+      end
+    end
   end
 
   @impl true
@@ -85,5 +123,17 @@ defmodule HomeWeb.SettingsLive do
     |> assign(:brief_running?, Map.get(scheduler, :running?, false))
     |> assign(:brief_stats, Brief.stats())
     |> assign(:brief_next_run, Brief.next_run())
+    |> assign(:agent_forge_enabled, Settings.get_bool("agent_forge.enabled", Client.enabled?()))
+    |> assign(:agent_forge_base_url, Settings.get("agent_forge.base_url", Client.base_url()))
+    |> assign(:agent_forge_project, Settings.get("agent_forge.project", Client.project()))
+    |> assign(:agent_forge_specialty, Settings.get("agent_forge.specialty", Client.specialty()))
+    |> assign(:agent_forge_token_present?, secret_present?("agent_forge", "webhook_token"))
+  end
+
+  defp secret_present?(service, key) do
+    case Store.list(service) do
+      secrets when is_list(secrets) -> Enum.any?(secrets, &(&1.key == key and &1.is_active))
+      _ -> false
+    end
   end
 end

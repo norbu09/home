@@ -29,6 +29,21 @@ config :home, :brief_scheduler,
   initial_delay_ms: 60_000,
   max_concurrency: 5
 
+# Agent-forge dispatch for infrastructure briefs: Home enqueues a fleet-sweep
+# goal to the agent-forge daemon (POST /jobs, bearer-authed) and polls
+# /api/runs until the agent run reaches a terminal state, then stores its
+# report as the brief outcome. The base URL + token follow the same shape as
+# the `agent-forge` remote MCP in opencode (~/.config/opencode/opencode.json).
+config :home, :agent_forge,
+  enabled: true,
+  base_url: "https://forge.kfos.nz",
+  # Repo slug in the daemon's :repos registry whose coder agent carries the
+  # ops-center MCP tools (the fleet-sweep capability).
+  project: "ops_center",
+  specialty: "ops",
+  poll_interval_ms: 30_000,
+  poll_timeout_ms: 15 * 60 * 1000
+
 config :home, :git_activity,
   root: "/home/lenz/code",
   lookback_days: 7,

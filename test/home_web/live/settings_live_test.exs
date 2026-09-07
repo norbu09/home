@@ -44,4 +44,54 @@ defmodule HomeWeb.SettingsLiveTest do
     assert has_element?(view, "#settings-brief-toggle[aria-checked='true']")
     assert Settings.get_bool("brief_scheduler.enabled") == true
   end
+
+  test "renders the forge connection panel with editable config", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/settings")
+
+    assert has_element?(view, "#settings-forge")
+    assert has_element?(view, "#settings-forge-toggle[role='switch']")
+    assert has_element?(view, "#agent_forge_base_url")
+    assert has_element?(view, "#agent_forge_project")
+    assert has_element?(view, "#agent_forge_specialty")
+    assert has_element?(view, "#agent_forge_token")
+    assert has_element?(view, "#settings-forge-token-save")
+  end
+
+  test "toggling the forge switch persists the setting", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/settings")
+
+    view |> element("#settings-forge-toggle") |> render_click()
+    assert has_element?(view, "#settings-forge-toggle[aria-checked='false']")
+    assert Settings.get_bool("agent_forge.enabled") == false
+  end
+
+  test "saving forge connection persists base URL, project, and specialty", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/settings")
+
+    view
+    |> form("#settings-forge-config", %{
+      config: %{
+        base_url: "https://forge.example.nz",
+        project: "mark_mesh",
+        specialty: "research"
+      }
+    })
+    |> render_submit()
+
+    assert Settings.get("agent_forge.base_url") == "https://forge.example.nz"
+    assert Settings.get("agent_forge.project") == "mark_mesh"
+    assert Settings.get("agent_forge.specialty") == "research"
+  end
+
+  test "storing the bearer token writes it to the vault", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/settings")
+
+    view
+    |> form("#settings-forge-token", %{token: %{value: "secret-token"}})
+    |> render_submit()
+
+    assert Home.AgentForge.Client.token() == {:ok, "secret-token"}
+    assert has_element?(view, "#settings-forge-token-status")
+    assert render(view) =~ "TOKEN STORED"
+  end
 end

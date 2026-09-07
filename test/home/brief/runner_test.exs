@@ -112,4 +112,95 @@ defmodule Home.Brief.RunnerTest do
       assert failed.error == "rate limited"
     end
   end
+
+  describe "dispatch?/1" do
+    test "is false for non-dispatch prompts" do
+      refute Runner.dispatch?(prompt!())
+    end
+
+    test "is true when metadata.dispatch is agent_forge" do
+      prompt =
+        Brief.create_prompt!(%{
+          name: "Infra",
+          slug: "infra-test",
+          category: "infrastructure",
+          system_prompt: "s",
+          user_prompt: "u",
+          metadata: %{"dispatch" => "agent_forge"}
+        })
+
+      assert Runner.dispatch?(prompt)
+    end
+  end
+
+  describe "run/2 dispatch path" do
+    alias Home.Brief.Runner
+
+    defmodule FakeForge do
+      @moduledoc false
+
+      def start(outcome) do
+        Agent.start_link(fn -> outcome end, name: __MODULE__)
+      end
+
+      def stop, do: Agent.stop(__MODULE__)
+
+      def enqueue(_meta), do: {:ok, "job_42"}
+
+      def run_status("job_42") do
+        outcome = Agent.get(__MODULE__, & &1)
+        {:ok, %{"status" => "completed", "outcome" => outcome, "run_id" => "job_42"}}
+      end
+    end
+
+    setup do
+      old_forge = Application.get_env(:home, :agent_forge, [])
+
+      Application.put_env(:home, :agent_forge,
+        transport: FakeForge,
+        enabled: true,
+        project: "ops_center",
+        poll_interval_ms: 10,
+        poll_timeout_ms: 500
+      )
+
+      System.put_env("AGENT_FORGE_WEBHOOK_TOKEN", "test-token")
+
+      on_exit(fn ->
+        Application.put_env(:home, :agent_forge, old_forge)
+        System.delete_env("AGENT_FORGE_WEBHOOK_TOKEN")
+        if Process.whereis(FakeForge), do: FakeForge.stop()
+      end)
+
+      :ok
+    end
+
+    defp dispatch_prompt! do
+      Brief.create_prompt!(%{
+        name: "Fleet Sweep",
+        slug: "fleet-sweep-test",
+        category: "infrastructure",
+        system_prompt: "sweep",
+        user_prompt: "Check the fleet.",
+        metadata: %{"dispatch" => "agent_forge"}
+      })
+    end
+
+    test "stores the agent-forge report as the brief outcome" do
+      FakeForge.start("## Summary\nFleet healthy\n\n- [ ] watch server7 meili backlog")
+
+      prompt = dispatch_prompt!()
+      {:ok, brief} = Brief.create(%{prompt_id: prompt.id, status: "running"})
+
+      assert {:ok, completed} = Runner.run(prompt, brief)
+      assert completed.status == "completed"
+      assert completed.model_used == "agent_forge"
+      assert completed.summary == "Fleet healthy"
+      assert completed.next_steps == ["watch server7 meili backlog"]
+      assert completed.metadata["dispatch"] == "agent_forge"
+      assert completed.metadata["job_id"] == "job_42"
+      assert [%{role: "assistant", content: content}] = Brief.get_by_id(completed.id).messages
+      assert content =~ "Fleet healthy"
+    end
+  end
 end
