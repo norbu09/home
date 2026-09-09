@@ -75,30 +75,6 @@ prompts = [
     Categorise each one and suggest which need immediate attention.
     For anything that needs a reply, draft a suggested response.
     """
-  },
-  %{
-    name: "Infrastructure Sweep",
-    slug: "infra-sweep",
-    category: "infrastructure",
-    schedule: %{"at" => "08:15"},
-    run_weekends: false,
-    priority: 40,
-    metadata: %{"dispatch" => "agent_forge"},
-    system_prompt: """
-    You are an infrastructure operations analyst. Review the current
-    state of all services, deployments, and health checks. Identify:
-    - Anything that is down or degraded
-    - Approaching capacity limits
-    - Pending deployments that need attention
-    - Security or maintenance tasks due today
-    Be specific — cite service names, metrics, and thresholds.
-    """,
-    user_prompt: """
-    Do a full infrastructure sweep. Check all services, deployments,
-    health checks, database sizes, disk usage, and recent alerts.
-    Tell me what needs my attention today and what can wait.
-    Search memory for any recent operational incidents or ongoing issues.
-    """
   }
 ]
 
