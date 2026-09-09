@@ -1,16 +1,20 @@
 defmodule Home.Brief.Runner do
   @moduledoc """
-  Executes one brief: builds the prompt messages, calls the local LLM proxy,
-  parses the structured markdown response, and persists the result.
+  Executes one brief end-to-end and persists the result.
+
+  Delegates execution to the backend configured on the prompt (see
+  `Home.Brief.Backend`): the local LLM proxy (`llm`, default), the remote
+  agent-forge daemon (`agent_forge`), or a local agentic CLI backend
+  (`opencode` / `claude_code` / `codex`). Each backend returns a flat result
+  map; this module handles the common persistence, message recording, and
+  failure bookkeeping.
 
   Pure-toward-failure: any error is recorded on the brief as a human-readable
   `error` with status `failed` — the scheduler never auto-retries.
   """
 
-  alias Home.AgentForge.Client
   alias Home.Brief
-  alias Home.Brief.{Conversation, Prompt}
-  alias Home.LLMProxy
+  alias Home.Brief.{Backend, Conversation, Prompt}
 
   @doc """
   Run a brief end-to-end. Returns `{:ok, brief}` on completion or
@@ -20,10 +24,9 @@ defmodule Home.Brief.Runner do
   @spec run(Prompt.t(), Conversation.t()) :: {:ok, Conversation.t()} | {:error, term()}
   def run(%Prompt{} = prompt, %Conversation{} = brief) do
     result =
-      if dispatch?(prompt) do
-        run_dispatch(prompt, brief)
-      else
-        run_llm(prompt, brief)
+      case Backend.run(prompt, brief) do
+        {:ok, result} -> persist_success(prompt, brief, result)
+        {:error, reason} -> {:error, reason}
       end
 
     case result do
@@ -45,81 +48,52 @@ defmodule Home.Brief.Runner do
     end
   end
 
-  # LLM path: a single text call through the local proxy. Used by most briefs.
-  defp run_llm(prompt, brief) do
-    messages = build_messages(prompt, brief)
-
-    with {:ok, response} <- call_llm(messages, prompt.model),
-         {:ok, parsed} <- parse_response(response.content) do
-      result =
-        Brief.update_brief(brief, %{
-          status: "completed",
-          outcome: response.content,
-          summary: parsed.summary,
-          next_steps: parsed.next_steps,
-          completed_at: DateTime.utc_now(),
-          model_used: response.model,
-          cost_usd: response.cost
-        })
-
-      case result do
-        {:ok, updated} ->
-          Brief.add_message(brief, "assistant", response.content)
-          remember_brief(updated, prompt)
-          {:ok, updated}
-
-        {:error, _} = error ->
-          error
-      end
-    end
-  end
-
-  # Agent-forge dispatch path: an infrastructure brief hands the sweep to a
-  # real agent (via the daemon's /jobs + /api/runs), and its report becomes
-  # the brief outcome. Still non-agentic from Home's perspective — one
-  # enqueue + a bounded poll, no tool-use loop in the brief runtime.
-  defp run_dispatch(prompt, brief) do
-    with {:ok, %{report: report, run: run}} <- dispatch(prompt),
-         {:ok, parsed} <- parse_response(report) do
-      result =
-        Brief.update_brief(brief, %{
-          status: "completed",
-          outcome: report,
-          summary: parsed.summary,
-          next_steps: parsed.next_steps,
-          completed_at: DateTime.utc_now(),
-          model_used: "agent_forge",
-          cost_usd: 0.0,
-          metadata: %{
-            "dispatch" => "agent_forge",
-            "job_id" => run["run_id"],
-            "branch" => run["branch"]
-          }
-        })
-
-      case result do
-        {:ok, updated} ->
-          Brief.add_message(brief, "assistant", report)
-          remember_brief(updated, prompt)
-          {:ok, updated}
-
-        {:error, _} = error ->
-          error
-      end
-    end
-  end
-
-  @doc "True when a prompt should be run by dispatching to agent-forge."
+  @doc "True when the backend dispatch is active for a prompt."
   def dispatch?(%Prompt{} = prompt) do
-    get_in(prompt.metadata, ["dispatch"]) == "agent_forge"
+    prompt.backend != "llm"
   end
 
-  defp dispatch(prompt) do
-    Client.fleet_sweep_report(
-      goal: prompt.user_prompt || "Run a fleet-status sweep.",
-      source_id: "brief:#{prompt.slug}",
-      max_actions: 120
-    )
+  @doc "Backend identifiers a prompt may use."
+  def backends, do: Prompt.backends()
+
+  # ── Persistence ──────────────────────────────────────────────────────────
+
+  # A backend returns `{:ok, result}` where result is:
+  #   %{content: string, summary: string, next_steps: [string],
+  #     model_used: string, cost_usd: number, metadata: map}
+  defp persist_success(prompt, brief, result) do
+    parsed =
+      case result.parsed do
+        %{summary: _, next_steps: _} = parsed ->
+          parsed
+
+        _ ->
+          case parse_response(result.content) do
+            {:ok, parsed} -> parsed
+            {:error, _} -> %{summary: self_summary(result.content), next_steps: []}
+          end
+      end
+
+    attrs = %{
+      status: "completed",
+      outcome: result.content,
+      summary: parsed.summary,
+      next_steps: parsed.next_steps,
+      completed_at: DateTime.utc_now(),
+      model_used: result.model_used,
+      cost_usd: result.cost_usd,
+      metadata: Map.merge(prompt.metadata || %{}, result.metadata || %{})
+    }
+
+    case Brief.update_brief(brief, attrs) do
+      {:ok, updated} ->
+        Brief.add_message(brief, "assistant", result.content)
+        remember_brief(updated, prompt)
+        {:ok, updated}
+
+      {:error, _} = error ->
+        error
+    end
   end
 
   @doc "Build the LLM messages for a prompt, resolving template variables."
@@ -138,32 +112,6 @@ defmodule Home.Brief.Runner do
       %{"role" => "system", "content" => prompt.system_prompt},
       %{"role" => "user", "content" => user_prompt}
     ]
-  end
-
-  defp call_llm(messages, model_override) do
-    model = model_override || "coder"
-
-    body = %{
-      "model" => model,
-      "messages" => messages,
-      "temperature" => 0.4,
-      "max_tokens" => 4096
-    }
-
-    case LLMProxy.chat_completion(body, project: "briefs", tool: "brief") do
-      {:ok, response} ->
-        with %{choices: [%{message: %{content: content}} | _]} <- response,
-             current_model <- Map.get(response, :model, model),
-             usage <- Map.get(response, :usage, %{}),
-             cost <- estimate_cost(current_model, usage) do
-          {:ok, %{content: content, model: current_model, cost: cost}}
-        else
-          _ -> {:error, {:malformed_response, response}}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
-    end
   end
 
   @doc "Extract summary and next steps from a structured markdown outcome."
@@ -199,6 +147,9 @@ defmodule Home.Brief.Runner do
     end
   end
 
+  defp self_summary(content) when is_binary(content), do: first_line(content)
+  defp self_summary(_), do: ""
+
   defp first_line(text), do: text |> String.split("\n") |> List.first() |> String.trim()
 
   defp extract_next_steps(content) do
@@ -208,12 +159,6 @@ defmodule Home.Brief.Runner do
     |> Enum.filter(&String.starts_with?(&1, "- [ ]"))
     |> Enum.map(&(String.replace_prefix(&1, "- [ ]", "") |> String.trim()))
     |> Enum.reject(&(&1 == ""))
-  end
-
-  defp estimate_cost(model, usage) do
-    input = usage["prompt_tokens"] || usage[:prompt_tokens] || 0
-    output = usage["completion_tokens"] || usage[:completion_tokens] || 0
-    Home.LLMProxy.UsageTracker.cost_for(model, input, output)
   end
 
   # Phase-3 write-through: the finished brief becomes a searchable memory

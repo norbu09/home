@@ -13,6 +13,14 @@ defmodule Home.Brief.Prompt do
 
   @categories ~w(calendar email infrastructure planning custom)
 
+  @backends ~w(llm agent_forge opencode claude_code codex)
+
+  @doc "Valid backend identifiers a prompt may be configured with."
+  def backends, do: @backends
+
+  @doc "Valid category identifiers a prompt may be configured with."
+  def categories, do: @categories
+
   schema "brief_prompts" do
     field :name, :string
     field :slug, :string
@@ -24,6 +32,7 @@ defmodule Home.Brief.Prompt do
     field :run_weekends, :boolean, default: false
     field :priority, :integer, default: 100
     field :model, :string
+    field :backend, :string, default: "llm"
     field :metadata, :map, default: %{}
 
     has_many :briefs, Home.Brief.Conversation
@@ -44,10 +53,12 @@ defmodule Home.Brief.Prompt do
       :run_weekends,
       :priority,
       :model,
+      :backend,
       :metadata
     ])
     |> validate_required([:name, :slug, :system_prompt, :user_prompt])
     |> validate_inclusion(:category, @categories)
+    |> validate_inclusion(:backend, @backends)
     |> validate_length(:name, max: 255)
     |> validate_length(:slug, max: 255)
   end

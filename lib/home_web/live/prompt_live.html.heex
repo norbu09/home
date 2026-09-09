@@ -1,0 +1,238 @@
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  active_nav={@active_nav}
+  secret_count={@secret_count}
+>
+  <.page_header
+    id="prompts-header"
+    title="Brief Prompts"
+    subtitle="prompt management · backend + schedule"
+  >
+    <:actions>
+      <.link navigate={~p"/briefs"}>
+        <button id="prompts-back" class="btn btn-sm btn-ghost">
+          <.icon name="hero-arrow-left" class="size-4" /> Briefs
+        </button>
+      </.link>
+      <%= unless @show_form do %>
+        <button
+          id="prompts-new"
+          phx-click="toggle_form"
+          class="btn btn-sm btn-primary"
+        >
+          <.icon name="hero-plus" class="size-4" /> New prompt
+        </button>
+      <% end %>
+    </:actions>
+  </.page_header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%!-- Prompts list --%>
+    <section id="prompts-list" class="cyber-panel intel-panel lg:col-span-2">
+      <header class="cyber-panel-header">
+        <h2 class="text-sm font-bold tracking-widest uppercase">Prompts</h2>
+        <span class="text-xs text-base-content/40">{length(@prompts)} tracked</span>
+      </header>
+
+      <%= if @prompts == [] do %>
+        <.empty_state
+          message="NO PROMPTS YET"
+          icon_name="hero-document-text"
+        />
+      <% else %>
+        <div class="p-2 divide-y divide-base-200/60">
+          <div
+            :for={prompt <- @prompts}
+            class="group px-2 py-3 hover:bg-base-200/40 transition-colors"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium truncate">{prompt.name}</span>
+                  <span class={[
+                    "cyber-tag text-[10px]",
+                    prompt.enabled && "bg-success/20 text-success",
+                    !prompt.enabled && "bg-base-content/10 text-base-content/50"
+                  ]}>
+                    {if prompt.enabled, do: "ON", else: "OFF"}
+                  </span>
+                </div>
+                <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/40">
+                  <code class="font-mono">sl:{prompt.slug}</code>
+                  <span>#{prompt.category}</span>
+                  <span>
+                    backend: <span class="font-mono text-primary">{prompt.backend}</span>
+                  </span>
+                  <span>@{prompt_schedule(prompt)}</span>
+                  <span>{length(prompt.briefs)} runs</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                <button
+                  id={"prompt-run-#{prompt.id}"}
+                  phx-click="run_now"
+                  phx-value-id={prompt.id}
+                  class="btn btn-xs btn-ghost text-primary"
+                  aria-label={"Run #{prompt.name} now"}
+                >
+                  <.icon name="hero-bolt" class="size-3" />
+                </button>
+                <button
+                  id={"prompt-toggle-#{prompt.id}"}
+                  phx-click="toggle_active"
+                  phx-value-id={prompt.id}
+                  class="btn btn-xs btn-ghost"
+                  aria-label={if(prompt.enabled, do: "Disable", else: "Enable")}
+                >
+                  <.icon
+                    name={if(prompt.enabled, do: "hero-pause", else: "hero-play")}
+                    class="size-3"
+                  />
+                </button>
+                <button
+                  id={"prompt-edit-#{prompt.id}"}
+                  phx-click="edit"
+                  phx-value-id={prompt.id}
+                  class="btn btn-xs btn-ghost"
+                  aria-label="Edit prompt"
+                >
+                  <.icon name="hero-pencil-square" class="size-3" />
+                </button>
+                <button
+                  id={"prompt-delete-#{prompt.id}"}
+                  phx-click="delete_prompt"
+                  phx-value-id={prompt.id}
+                  phx-confirm={"Delete #{prompt.name}?"}
+                  class="btn btn-xs btn-ghost text-error"
+                  aria-label="Delete prompt"
+                >
+                  <.icon name="hero-trash" class="size-3" />
+                </button>
+              </div>
+            </div>
+
+            <p class="mt-1 text-xs text-base-content/60 line-clamp-2">{prompt.user_prompt}</p>
+          </div>
+        </div>
+      <% end %>
+    </section>
+
+    <%!-- Create / edit form --%>
+    <section id="prompts-form-panel" class="cyber-panel intel-panel">
+      <header class="cyber-panel-header">
+        <h2 class="text-sm font-bold tracking-widest uppercase">
+          {if @editing_id, do: "Edit Prompt", else: "New Prompt"}
+        </h2>
+        <%= if @editing_id do %>
+          <button
+            id="prompts-cancel"
+            phx-click="cancel_edit"
+            class="btn btn-xs btn-ghost"
+          >
+            Cancel
+          </button>
+        <% end %>
+      </header>
+
+      <%= if @show_form do %>
+        <.form
+          for={@form}
+          id="prompt-form"
+          as={:prompt}
+          phx-submit="save"
+          class="p-4 space-y-4"
+        >
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <.input
+              field={@form[:name]}
+              type="text"
+              label="Name"
+              placeholder="Infrastructure Sweep"
+            />
+            <.input field={@form[:slug]} type="text" label="Slug" placeholder="infra-sweep" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <.input
+              field={@form[:category]}
+              type="select"
+              label="Category"
+              options={Enum.map(Prompt.categories(), &{String.capitalize(&1), &1})}
+            />
+            <.input
+              field={@form[:backend]}
+              type="select"
+              label="Backend"
+              options={Enum.map(Prompt.backends(), &{String.upcase(&1), &1})}
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <.input
+              id="prompt-schedule"
+              type="text"
+              name="prompt[schedule][at]"
+              label="Schedule (HH:MM)"
+              value={schedule_at(@form)}
+              placeholder="08:00"
+            />
+            <.input field={@form[:priority]} type="number" label="Priority" placeholder="100" />
+            <.input
+              field={@form[:model]}
+              type="text"
+              label="Model (optional)"
+              placeholder="coder"
+            />
+          </div>
+
+          <div class="flex flex-wrap items-center gap-4">
+            <.input field={@form[:enabled]} type="checkbox" label="Enabled" />
+            <.input field={@form[:run_weekends]} type="checkbox" label="Run weekends" />
+          </div>
+
+          <.input
+            field={@form[:system_prompt]}
+            type="textarea"
+            label="System prompt"
+            rows={4}
+            placeholder="You are an operations analyst..."
+          />
+
+          <.input
+            field={@form[:user_prompt]}
+            type="textarea"
+            label="User prompt"
+            rows={4}
+            placeholder="What should this brief do? {{date}} / {{yesterday}} / {{weekday}}"
+          />
+
+          <%= if @form[:user_prompt].errors != [] do %>
+            <p class="text-xs text-error">
+              {List.first(@form[:user_prompt].errors, %{}).message}
+            </p>
+          <% end %>
+
+          <div class="flex items-center justify-end gap-2 pt-1">
+            <button
+              type="submit"
+              id="prompt-form-save"
+              class="btn btn-sm btn-primary"
+            >
+              <.icon name="hero-check" class="size-3" />
+              {if @editing_id, do: "Save changes", else: "Create prompt"}
+            </button>
+          </div>
+        </.form>
+      <% else %>
+        <div class="p-6 text-center">
+          <div class="text-sm text-base-content/40">
+            Select <span class="text-primary">New prompt</span> to configure a brief backend
+            and schedule, or pick an existing prompt to edit it.
+          </div>
+        </div>
+      <% end %>
+    </section>
+  </div>
+</Layouts.app>

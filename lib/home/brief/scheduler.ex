@@ -142,7 +142,9 @@ defmodule Home.Brief.Scheduler do
     prompts
     |> Task.async_stream(&run_prompt/1,
       max_concurrency: concurrency_limit(),
-      timeout: 120_000
+      # Above the agentic backend's 15-min runner timeout, so a long
+      # CLI brief isn't killed mid-run with no failure persisted.
+      timeout: 16 * 60_000
     )
     |> Enum.to_list()
   end

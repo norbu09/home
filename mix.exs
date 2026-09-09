@@ -22,7 +22,7 @@ defmodule Home.MixProject do
   def application do
     [
       mod: {Home.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :agentic]
     ]
   end
 
@@ -87,10 +87,11 @@ defmodule Home.MixProject do
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       # Pinned git ref so builds (incl. Docker) don't need sibling checkouts.
+      # Runtime app: the Client-side agent harness drives the opencode/claude/
+      # codex CLIs for briefs with a CLI backend (its Protocol.Registry must be
+      # running; it is started via :agentic in extra_applications above).
       {:agentic,
-       github: "kittyfromouterspace/agentic",
-       ref: "836ffd64d654fe1a2261f894243a35b9417da91d",
-       runtime: false},
+       github: "kittyfromouterspace/agentic", ref: "03ae604eac6e2902f97c36234a75f12a24dcc0c7"},
       # MCP server surface (streamable HTTP) for Claude Code / Codex memory access
       {:hermes_mcp, "~> 0.14.1"},
       # Pinned git ref (overrides the hex pin agentic declares transitively) —

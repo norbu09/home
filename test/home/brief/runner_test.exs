@@ -118,7 +118,7 @@ defmodule Home.Brief.RunnerTest do
       refute Runner.dispatch?(prompt!())
     end
 
-    test "is true when metadata.dispatch is agent_forge" do
+    test "is true when the prompt backend is agent_forge" do
       prompt =
         Brief.create_prompt!(%{
           name: "Infra",
@@ -126,7 +126,7 @@ defmodule Home.Brief.RunnerTest do
           category: "infrastructure",
           system_prompt: "s",
           user_prompt: "u",
-          metadata: %{"dispatch" => "agent_forge"}
+          backend: "agent_forge"
         })
 
       assert Runner.dispatch?(prompt)
@@ -182,7 +182,7 @@ defmodule Home.Brief.RunnerTest do
         category: "infrastructure",
         system_prompt: "sweep",
         user_prompt: "Check the fleet.",
-        metadata: %{"dispatch" => "agent_forge"}
+        backend: "agent_forge"
       })
     end
 

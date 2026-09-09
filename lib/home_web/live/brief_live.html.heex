@@ -18,6 +18,11 @@
         ]} />
         {if @scheduler_running?, do: "generating…", else: "idle"}
       </span>
+      <.link navigate={~p"/briefs/prompts"}>
+        <button id="briefs-manage-prompts" class="btn btn-sm btn-ghost">
+          <.icon name="hero-cog-6-tooth" class="size-4" /> Manage prompts
+        </button>
+      </.link>
     </:actions>
   </.page_header>
 

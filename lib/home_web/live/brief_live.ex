@@ -11,7 +11,7 @@ defmodule HomeWeb.BriefLive do
   import Ecto.Query
 
   alias Home.Brief
-  alias Home.Brief.{Conversation, Insights, Message, Prompt, Runner}
+  alias Home.Brief.{Conversation, Insights, Message, Prompt}
   alias Home.LLMProxy
   alias Home.Settings
 
@@ -99,22 +99,9 @@ defmodule HomeWeb.BriefLive do
     if brief && brief.status == "failed" do
       prompt = Brief.prompt_for(brief.id)
 
-      case Brief.create(%{
-             prompt_id: prompt.id,
-             status: "running",
-             scheduled_at: DateTime.utc_now(),
-             retried_from_id: brief.id
-           }) do
-        {:ok, retry} ->
-          Task.start(fn ->
-            prompt = Brief.prompt_for(retry.id)
-            Runner.run(prompt, retry)
-          end)
-
-          {:noreply, assign_brief_state(socket)}
-
-        {:error, _} ->
-          {:noreply, socket}
+      case Brief.run_prompt_now(prompt, retried_from_id: brief.id) do
+        {:ok, _retry} -> {:noreply, assign_brief_state(socket)}
+        {:error, _} -> {:noreply, socket}
       end
     else
       {:noreply, socket}

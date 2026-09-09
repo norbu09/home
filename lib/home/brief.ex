@@ -9,7 +9,7 @@ defmodule Home.Brief do
 
   import Ecto.Query
 
-  alias Home.Brief.{Conversation, Message, Prompt}
+  alias Home.Brief.{Conversation, Message, Prompt, Runner}
   alias Home.Repo
 
   require Logger
@@ -193,11 +193,80 @@ defmodule Home.Brief do
     |> tap_ok(fn brief -> broadcast({:briefs_updated, :created, brief}) end)
   end
 
+  @doc """
+  Run a prompt now, outside its schedule: insert a running brief and execute
+  the runner in a fire-and-forget task. The outcome (or failure) broadcasts
+  on the briefs topic, so any subscribed LiveView refreshes. Pass
+  `retried_from_id:` to link a manual retry to the brief it re-runs.
+  """
+  def run_prompt_now(%Prompt{} = prompt, opts \\ []) do
+    case create(%{
+           prompt_id: prompt.id,
+           status: "running",
+           scheduled_at: DateTime.utc_now(),
+           retried_from_id: opts[:retried_from_id]
+         }) do
+      {:ok, brief} ->
+        Task.start(fn ->
+          prompt = prompt_for(brief.id)
+          Runner.run(prompt, brief)
+        end)
+
+        {:ok, brief}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
   @doc "Insert-or-ignore a prompt. Raises on conflict (slug)."
   def create_prompt!(attrs) do
     %Prompt{}
     |> Prompt.changeset(attrs)
     |> Repo.insert!(on_conflict: :nothing)
+  end
+
+  @doc "All prompts, sorted by priority (lowest first), newest ties last."
+  def list_prompts do
+    Prompt
+    |> order_by([p], asc: p.priority, asc: p.name)
+    |> preload(:briefs)
+    |> Repo.all()
+  end
+
+  @doc "Get a prompt by id. Raises if not found."
+  def get_prompt!(id), do: Repo.get!(Prompt, id)
+
+  @doc "Get a prompt by id, or nil."
+  def get_prompt(id) do
+    case Repo.get(Prompt, id) do
+      nil -> nil
+      prompt -> Repo.preload(prompt, :briefs)
+    end
+  end
+
+  @doc "A prompt changeset for creation/editing forms."
+  def change_prompt(%Prompt{} = prompt, attrs \\ %{}) do
+    Prompt.changeset(prompt, attrs)
+  end
+
+  @doc "Create a prompt from a changeset. Returns `{:ok, prompt}` or `{:error, changeset}`."
+  def create_prompt(attrs) do
+    %Prompt{}
+    |> Prompt.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc "Update a prompt. Returns `{:ok, prompt}` or `{:error, changeset}`."
+  def update_prompt(%Prompt{} = prompt, attrs) do
+    prompt
+    |> Prompt.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc "Delete a prompt. Returns `{:ok, prompt}` or `{:error, changeset}`."
+  def delete_prompt(%Prompt{} = prompt) do
+    Repo.delete(prompt)
   end
 
   @doc "Update a brief. Broadcasts on success."
