@@ -1,13 +1,23 @@
 defmodule Home.Memory.Importer do
   @moduledoc """
   Imports local coding-agent memory into home's Recollect store, one scope
-  per project. Orchestrates the existing recollect learning pipeline:
+  per project.
 
-    * fetch   — `Recollect.Learner.CodingAgent` providers (Claude Code,
-      Codex, OpenCode), reading their local session/memory stores
-    * extract — each provider's `extract/1` turns events into notes
-    * distill — session notes go through `Recollect.Sleep.distill/2` (LLM
-      via the local proxy, or heuristic with `use_llm: false`)
+  Since B-2165 this is a thin home-specific shell over the shared harvest
+  pipeline (`Recollect.Learner.Harvest`): fetch, per-agent consent
+  (`Recollect.Learner.Consent` — grants live in
+  `~/.config/recollect/consent.json`, manage with
+  `mix recollect.harvest --grant claude_code`), and project mapping
+  (`Recollect.Learner.ProjectMapping`) live in recollect. What stays here is
+  home's store semantics:
+
+    * fetch   — recollect's coding-agent providers (Claude Code, Codex,
+      OpenCode), reading their local session/memory stores
+    * extract — `Recollect.Learner.CodingAgent.extract/1` turns events into
+      notes (recollect's harvest does this; the result is grouped per scope)
+    * distill — codex/opencode session notes go through
+      `Recollect.Sleep.distill/2` (LLM via the local proxy, or heuristic with
+      `use_llm: false`)
     * store   — `Home.Memory.remember/2` with a deterministic
       `import:<agent>:<scope>:<hash>` source_id, so re-runs are idempotent
 
@@ -16,16 +26,21 @@ defmodule Home.Memory.Importer do
 
   The scheduler (`Home.Memory.ImportScheduler`) and the `/memory` UI call
   `run/1`; each run's summary is recorded in `Home.Settings` under
-  `memory_import.last_run`.
+  `memory_import.last_run`. Per-source failures are contained: one agent's
+  fetch crashing does not abort the others' import.
   """
 
   alias Home.Memory
   alias Home.Settings
-  alias Recollect.Learner.CodingAgent
+  alias Recollect.Learner.Harvest
+  alias Recollect.Learner.ProjectMapping
 
   require Logger
 
   @sources ["claude", "codex", "opencode"]
+  @provider_names %{"claude" => :claude_code, "codex" => :codex, "opencode" => :opencode}
+  # Curated memory + CLAUDE.md only — session transcripts are noise here.
+  @curated_sources [:memory_file, :claude_md]
   @last_run_key "memory_import.last_run"
 
   @doc """
@@ -38,6 +53,7 @@ defmodule Home.Memory.Importer do
     * `:use_llm` — LLM distillation for session notes (default true)
     * `:limit`   — cap notes per project batch
     * `:record`  — write the run summary to `Home.Settings` (default true)
+    * `:consent` — `:enforce` (default; only consented agents are read) or `:off`
 
   Returns a map `%{source => %{fetched:, stored:, skipped:, by_project:}}`.
   """
@@ -71,94 +87,70 @@ defmodule Home.Memory.Importer do
         get_in(note, [:metadata, "project"]) ||
         Map.get(note, :project)
 
-    case project do
-      nil ->
-        "shared"
-
-      p when is_binary(p) ->
-        p
-        |> String.trim_leading("-")
-        |> String.replace("-", "/")
-        |> String.split("/", trim: true)
-        |> resolve_project_name()
-
-      other ->
-        to_string(other)
-    end
+    ProjectMapping.scope_for_key(project)
   end
 
   # ── Per-source import ───────────────────────────────────────────────────
 
-  defp import_source("claude", opts) do
-    provider = CodingAgent.ClaudeCode
+  defp import_source(source, opts) do
+    provider = Map.fetch!(@provider_names, source)
 
-    # Curated memory + CLAUDE.md only — session transcripts are noise here.
-    notes =
-      provider
-      |> safe_fetch()
-      |> Enum.filter(&(&1.source in [:memory_file, :claude_md]))
-      |> extract_all(provider)
-
-    store_notes(notes, "claude", Keyword.put(opts, :distill, false))
-  end
-
-  defp import_source(source, opts) when source in ["codex", "opencode"] do
-    provider =
-      %{codex: CodingAgent.Codex, opencode: CodingAgent.OpenCode}[String.to_existing_atom(source)]
-
-    notes = provider |> safe_fetch() |> extract_all(provider)
-
-    store_notes(notes, source, Keyword.put(opts, :distill, true))
-  end
-
-  defp safe_fetch(provider) do
-    config = %{data_paths: provider.default_data_paths()}
-
-    if provider.available?(config) do
-      provider.fetch_events(config, [])
-    else
-      Logger.info("memory import: #{provider.agent_name()} not available, skipping")
-      []
-    end
-  rescue
-    e ->
-      Logger.warning(
-        "memory import: #{provider.agent_name()} fetch failed: #{Exception.message(e)}"
-      )
-
-      []
-  end
-
-  defp extract_all(events, provider) do
-    Enum.flat_map(events, fn event ->
-      case provider.extract(event) do
-        {:ok, note} -> [note]
-        {:skip, _} -> []
+    result =
+      try do
+        {:ok,
+         Harvest.run(
+           all_sessions: true,
+           agents: [provider],
+           sink: :collect,
+           record: false,
+           consent: Keyword.get(opts, :consent, :enforce),
+           log: fn msg -> Logger.info("memory import: #{msg}") end
+         )}
+      rescue
+        e ->
+          Logger.warning("memory import: #{source} fetch failed: #{Exception.message(e)}")
+          {:error, e}
       end
-    end)
+
+    case result do
+      {:ok, %{records: records}} ->
+        records
+        |> filter_source(source)
+        |> store_notes(source, opts)
+
+      {:error, _} ->
+        initial()
+    end
   end
+
+  defp filter_source(records, "claude"),
+    do: Enum.filter(records, &(&1.source in @curated_sources))
+
+  defp filter_source(records, _source), do: records
+
+  defp initial, do: %{fetched: 0, stored: 0, skipped: 0, by_project: %{}}
 
   # ── Store: group by project, optionally distill, dedup by source_id ────
 
-  defp store_notes(notes, agent, opts) do
+  defp store_notes(records, agent, opts) do
     dry_run? = Keyword.get(opts, :dry_run, false)
-    distill? = Keyword.get(opts, :distill, false)
+    # Claude's curated files skip distillation; codex/opencode session notes
+    # get the LLM pass.
+    distill? = agent != "claude"
     use_llm? = Keyword.get(opts, :use_llm, true)
     limit = Keyword.get(opts, :limit)
 
-    initial = %{fetched: length(notes), stored: 0, skipped: 0, by_project: %{}}
-
-    notes
+    records
     |> Enum.group_by(&project_scope/1)
-    |> Enum.reduce(initial, fn {scope, project_notes}, acc ->
-      project_notes = if limit, do: Enum.take(project_notes, limit), else: project_notes
+    |> Enum.reduce(initial(), fn {scope, scope_records}, acc ->
+      scope_records = if limit, do: Enum.take(scope_records, limit), else: scope_records
 
       items =
         cond do
           # Dry-run never calls the LLM and never distills: group raw notes.
-          dry_run? -> project_notes
-          distill? -> distill(project_notes, scope, use_llm?)
-          true -> project_notes
+          dry_run? -> scope_records
+          distill? -> distill(scope_records, scope, use_llm?)
+          true -> scope_records
         end
 
       {stored, skipped} =
@@ -184,7 +176,8 @@ defmodule Home.Memory.Importer do
 
       %{
         acc
-        | stored: acc.stored + stored,
+        | fetched: acc.fetched + length(scope_records),
+          stored: acc.stored + stored,
           skipped: acc.skipped + skipped,
           by_project: Map.put(acc.by_project, scope, stored)
       }
@@ -233,24 +226,5 @@ defmodule Home.Memory.Importer do
       |> binary_part(0, 16)
 
     "import:#{agent}:#{scope}:#{hash}"
-  end
-
-  # ── Project → scope mapping ─────────────────────────────────────────────
-
-  @code_root Path.expand("~/code")
-
-  defp resolve_project_name([]), do: "shared"
-  defp resolve_project_name(["unknown"]), do: "shared"
-
-  defp resolve_project_name(segments) do
-    # Try the longest trailing suffix that matches a real checkout, with
-    # dashes mapped to underscores ("mark", "mesh" → "mark_mesh").
-    1..min(3, length(segments))
-    |> Enum.map(fn n -> segments |> Enum.take(-n) |> Enum.join("_") end)
-    |> Enum.find(fn candidate -> File.dir?(Path.join(@code_root, candidate)) end)
-    |> case do
-      nil -> List.last(segments)
-      name -> name
-    end
   end
 end
