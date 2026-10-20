@@ -95,11 +95,12 @@ defmodule Home.MixProject do
       # MCP server surface (streamable HTTP) for Claude Code / Codex memory access
       {:hermes_mcp, "~> 0.14.1"},
       # Pinned git ref (overrides the hex pin agentic declares transitively) —
-      # home's memory integration (Home.Memory) relies on recollect features
-      # landed after the last hex release (B-1363..B-1367 + opencode schema fix).
+      # Pinned git ref, shared with ops_center (B-2165): keeps the harvest
+      # pipeline (Recollect.Learner.Harvest + Consent + Checkpoint) identical
+      # in both consumers of the recollect dep.
       {:recollect,
        github: "kittyfromouterspace/recollect",
-       ref: "4c54ec85d882bea1e9ed7e14eebea0883523edae",
+       ref: "715abd23163fdeb1da60cab3220c3176d29368ce",
        override: true},
       # Optional recollect dep — declared explicitly so Postgrex gets the
       # vector type (Recollect.PostgrexTypes).
